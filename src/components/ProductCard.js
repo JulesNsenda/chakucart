@@ -8,7 +8,7 @@ const ProductCard = ({ product }) => {
     const handleAddToCart = () => {
         if (product.available && product.quantity > 0) {
             addToCart(product);
-            alert(`${product.name} added to cart!`); // Simple feedback (can replace with toast later)
+            // Removed showToast(`${product.name} added to cart!`)
         }
     };
 

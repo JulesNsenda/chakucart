@@ -4,23 +4,9 @@ import { ProductContext } from '../context/ProductContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-// Toast notification component (simple implementation)
-const Toast = ({ message, onClose }) => (
-    <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-md shadow-lg animate-fade-in-out">
-        {message}
-        <button
-            onClick={onClose}
-            className="ml-4 text-white hover:text-gray-200"
-        >
-            ×
-        </button>
-    </div>
-);
-
 const Cart = () => {
     const { cart, removeFromCart, updateCartQuantity, clearCart } = useContext(ProductContext);
     const navigate = useNavigate();
-    const [toast, setToast] = useState(null);
     const [location, setLocation] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town, South Africa (warehouse location)
     const [distance, setDistance] = useState(0); // Distance in kilometers
     const [clientLocation, setClientLocation] = useState(null); // Client's location, initially null
@@ -64,11 +50,6 @@ const Cart = () => {
         }
     }, [clientLocation, location]); // Only re-run when clientLocation or location changes
 
-    const showToast = (message) => {
-        setToast(message);
-        setTimeout(() => setToast(null), 3000); // Auto-hide after 3 seconds
-    };
-
     if (cart.length === 0) {
         return (
             <div className="flex flex-col min-h-screen bg-gray-50">
@@ -96,30 +77,34 @@ const Cart = () => {
     const handleRemove = (productId) => {
         if (window.confirm('Are you sure you want to remove this item from your cart?')) {
             removeFromCart(productId);
-            showToast('Item removed from cart');
+            // Removed showToast('Item removed from cart')
         }
     };
 
     const handleClear = () => {
         if (window.confirm('Are you sure you want to clear your cart?')) {
             clearCart();
-            showToast('Cart cleared');
+            // Removed showToast('Cart cleared')
         }
     };
 
     const handleQuantityChange = (productId, e) => {
         const newQuantity = parseInt(e.target.value) || 1;
         if (isNaN(newQuantity) || newQuantity < 1) {
-            showToast('Please enter a valid quantity (minimum 1)');
+            // No toast, just reset to 1
+            e.target.value = 1;
+            updateCartQuantity(productId, 1);
             return;
         }
         const product = cart.find(item => item.id === productId);
         if (newQuantity > product.quantity) {
-            showToast(`Only ${product.quantity} available in stock`);
+            // No toast, just reset to max available
+            updateCartQuantity(productId, product.quantity);
+            e.target.value = product.quantity;
             return;
         }
         updateCartQuantity(productId, newQuantity);
-        showToast('Quantity updated');
+        // No toast for quantity updates
     };
 
     return (
@@ -154,7 +139,7 @@ const Cart = () => {
                                     onBlur={(e) => {
                                         if (parseInt(e.target.value) < 1) {
                                             e.target.value = 1; // Reset to minimum 1 if invalid
-                                            handleQuantityChange(item.id, { target: { value: 1 } });
+                                            updateCartQuantity(item.id, 1);
                                         }
                                     }}
                                 />
@@ -205,33 +190,11 @@ const Cart = () => {
                         </button>
                     </div>
                 </div>
-                {toast && <Toast message={toast} onClose={() => setToast(null)} />}
             </main>
             <Footer />
         </div>
     );
 };
 
-// Animation for toast
-const styles = `
-  @keyframes fadeInOut {
-    0%, 100% { opacity: 0; transform: translateY(-10px); }
-    10%, 90% { opacity: 1; transform: translateY(0); }
-  }
-  .animate-fade-in-out {
-    animation: fadeInOut 3s ease-in-out;
-  }
-  @keyframes pulseOnce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
-  .animate-pulse-once {
-    animation: pulseOnce 0.3s ease-in-out;
-  }
-`;
-
-const styleSheet = document.createElement('style');
-styleSheet.textContent = styles;
-document.head.appendChild(styleSheet);
-
+// Animation for toast (already defined in ToastContext.js, but we’re removing toast usage, no need here)
 export default Cart;

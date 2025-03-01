@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
+import { imageMap } from '../data/products';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import ProductCard from '../components/ProductCard';
@@ -20,11 +21,12 @@ const normalizeText = (text) => {
 };
 
 const Home = () => {
-  const { allProducts, paginate, currentPage, imageMap } = useContext(ProductContext);
+  const { allProducts, paginate, currentPage, itemsPerPage, cart, addToCart } = useContext(ProductContext);
   const [searchParams, setSearchParams] = useSearchParams(); // Read and write search params
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || ''); // Sync with URL query
+  const navigate = useNavigate();
   const productsRef = useRef(null); // Ref for the products section
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8); // State for items per page dropdown (default 8)
 
@@ -164,7 +166,7 @@ const Home = () => {
                   <option value="name-desc">Name: Z-A</option>
                 </select>
 
-                {/* Filter by Category */}
+                /* Filter by Category */
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -272,7 +274,7 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, image
         name,
         description: `Fresh ${name} from local markets`,
         price: Number((Math.random() * 20 + 1).toFixed(2)),
-        unit: getUnitForCategory(name), // Use getUnitForCategory from ProductContext or define here
+        unit: getUnitForCategory(name),
         quantity: Math.floor(Math.random() * 10) + 1,
         available: Math.random() > 0.1,
         image: imageMap[name],
@@ -284,7 +286,7 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, image
   return uniqueProducts;
 }
 
-// Function for specific units based on category (needed if not using ProductContext)
+// Function for specific units based on category
 function getUnitForCategory(name) {
   const lowerName = name.toLowerCase();
   if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';

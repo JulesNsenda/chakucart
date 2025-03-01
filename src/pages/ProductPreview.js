@@ -4,23 +4,23 @@ import { ProductContext } from '../context/ProductContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-// Helper function to determine category based on product name
-const getCategory = (name) => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
-    if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
-    if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
-    if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
-    if (lowerName.includes('bread')) return 'bread';
-    if (lowerName.includes('juice')) return 'beverages';
-    return 'all'; // Default category
-};
-
 const ProductPreview = () => {
     const { id } = useParams(); // Get product ID from URL
     const { allProducts, cart, addToCart } = useContext(ProductContext);
     const navigate = useNavigate();
     const product = allProducts.find(p => p.id === parseInt(id));
+
+    // Helper function to determine category based on product name
+    const getCategory = (name) => {
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
+        if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
+        if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
+        if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
+        if (lowerName.includes('bread')) return 'bread';
+        if (lowerName.includes('juice')) return 'beverages';
+        return 'all'; // Default category
+    };
 
     // Determine category for this product
     const category = getCategory(product.name);
@@ -64,7 +64,7 @@ const ProductPreview = () => {
     const handleAddToCart = () => {
         if (product.available && product.quantity > 0) {
             addToCart(product);
-            alert(`${product.name} added to cart!`); // Simple feedback (could be a toast later)
+            // Removed showToast(`${product.name} added to cart!`)
         }
     };
 
@@ -119,7 +119,7 @@ const ProductPreview = () => {
                             </ul>
                         </div>
 
-                        {/* Top Pick (if not promoted, now always shown since no promotions) */}
+                        {/* Top Pick (since no promotions) */}
                         {isTopPick && (
                             <p className="text-green-600 font-semibold mb-4">
                                 Top Pick in {category.charAt(0).toUpperCase() + category.slice(1)} Category
