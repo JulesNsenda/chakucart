@@ -18,14 +18,9 @@ const getCategory = (name) => {
 
 const ProductPreview = () => {
     const { id } = useParams(); // Get product ID from URL
-    const { allProducts, cart, addToCart, promotedIds } = useContext(ProductContext);
+    const { allProducts, cart, addToCart } = useContext(ProductContext);
     const navigate = useNavigate();
     const product = allProducts.find(p => p.id === parseInt(id));
-
-    // Determine if product is promoted
-    const isPromoted = promotedIds.includes(product.id);
-    const originalPrice = product.price;
-    const discountedPrice = isPromoted ? Number((product.price * 0.85).toFixed(2)) : null;
 
     // Determine category for this product
     const category = getCategory(product.name);
@@ -67,7 +62,7 @@ const ProductPreview = () => {
     }
 
     const handleAddToCart = () => {
-        if (product.available) {
+        if (product.available && product.quantity > 0) {
             addToCart(product);
             alert(`${product.name} added to cart!`); // Simple feedback (could be a toast later)
         }
@@ -99,14 +94,7 @@ const ProductPreview = () => {
                         <h1 className="text-3xl font-bold text-gray-800 mb-4">{product.name}</h1>
                         <p className="text-gray-600 mb-4">{product.description}</p>
                         <div className="text-2xl font-bold mb-4">
-                            {isPromoted ? (
-                                <>
-                                    <span className="text-gray-500 line-through">R{originalPrice.toFixed(2)}</span>
-                                    <span className="text-blue-600 ml-2">R{discountedPrice.toFixed(2)}</span> / {product.unit}
-                                </>
-                            ) : (
-                                <span className="text-blue-600">R{originalPrice.toFixed(2)} / {product.unit}</span>
-                            )}
+                            <span className="text-blue-600">R{product.price.toFixed(2)} / {product.unit}</span>
                         </div>
                         <p className="text-gray-700 mb-4">
                             Quantity Available: {product.quantity}
@@ -131,15 +119,8 @@ const ProductPreview = () => {
                             </ul>
                         </div>
 
-                        {/* Promotion Notification (if promoted) */}
-                        {isPromoted && (
-                            <div className="mb-4 bg-red-100 text-red-800 p-2 rounded-md">
-                                <p className="font-semibold">15% Promotion Applied!</p>
-                            </div>
-                        )}
-
-                        {/* Top Pick (if not promoted) */}
-                        {isTopPick && !isPromoted && (
+                        {/* Top Pick (if not promoted, now always shown since no promotions) */}
+                        {isTopPick && (
                             <p className="text-green-600 font-semibold mb-4">
                                 Top Pick in {category.charAt(0).toUpperCase() + category.slice(1)} Category
                             </p>
@@ -148,10 +129,10 @@ const ProductPreview = () => {
                         {/* Add to Cart */}
                         <button
                             onClick={handleAddToCart}
-                            className={`mt-4 w-full md:w-1/2 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available ? 'bg-gray-400 cursor-not-allowed' : ''}`}
-                            disabled={!product.available}
+                            className={`mt-4 w-full md:w-1/2 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available || product.quantity === 0 ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                            disabled={!product.available || product.quantity === 0}
                         >
-                            {product.available ? 'Add to Cart' : 'Out of Stock'}
+                            {product.available && product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
                         </button>
                     </div>
                 </div>

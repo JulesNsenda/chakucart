@@ -26,7 +26,7 @@ const Cart = () => {
         );
     }
 
-    const total = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2);
+    const total = cart.reduce((sum, item) => sum + (item.price * (item.cartQuantity || 1)), 0).toFixed(2);
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
@@ -51,7 +51,7 @@ const Cart = () => {
                                 <input
                                     type="number"
                                     min="1"
-                                    value={item.quantity || 1}
+                                    value={item.cartQuantity || 1}
                                     onChange={(e) => updateCartQuantity(item.id, parseInt(e.target.value) || 1)}
                                     className="w-16 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                 />

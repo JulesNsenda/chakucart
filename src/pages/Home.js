@@ -20,7 +20,7 @@ const normalizeText = (text) => {
 };
 
 const Home = () => {
-  const { allProducts, paginate, currentPage, itemsPerPage, cart, setCart } = useContext(ProductContext);
+  const { allProducts, paginate, currentPage, itemsPerPage, cart, addToCart } = useContext(ProductContext);
   const [searchParams, setSearchParams] = useSearchParams(); // Read and write search params
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
@@ -31,12 +31,6 @@ const Home = () => {
 
   // Categories for filtering
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
-
-  // Randomly pick 2 promoted items (15% off)
-  const promotedIds = allProducts
-    .sort(() => 0.5 - Math.random()) // Random sort
-    .slice(0, 2) // Pick 2 items
-    .map(product => product.id);
 
   // Handle search
   const handleSearch = (e) => {
@@ -180,7 +174,7 @@ const Home = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {currentProducts.length > 0 ? (
                 currentProducts.map((product) => (
-                  <ProductCard key={product.id} product={{ ...product, isPromoted: promotedIds.includes(product.id) }} />
+                  <ProductCard key={product.id} product={product} />
                 ))
               ) : (
                 <p className="text-center text-gray-500">No products found.</p>
