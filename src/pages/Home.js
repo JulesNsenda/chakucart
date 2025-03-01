@@ -166,7 +166,7 @@ const Home = () => {
                   <option value="name-desc">Name: Z-A</option>
                 </select>
 
-                /* Filter by Category */
+                {/* Filter by Category */}
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
