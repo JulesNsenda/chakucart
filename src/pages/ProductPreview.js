@@ -18,7 +18,7 @@ const getCategory = (name) => {
 
 const ProductPreview = () => {
     const { id } = useParams(); // Get product ID from URL
-    const { allProducts, cart, setCart, promotedIds } = useContext(ProductContext);
+    const { allProducts, cart, addToCart, promotedIds } = useContext(ProductContext);
     const navigate = useNavigate();
     const product = allProducts.find(p => p.id === parseInt(id));
 
@@ -66,10 +66,9 @@ const ProductPreview = () => {
         );
     }
 
-    const addToCart = () => {
+    const handleAddToCart = () => {
         if (product.available) {
-            const cartItem = isPromoted ? { ...product, price: discountedPrice } : product;
-            setCart([...cart, cartItem]);
+            addToCart(product);
             alert(`${product.name} added to cart!`); // Simple feedback (could be a toast later)
         }
     };
@@ -148,9 +147,8 @@ const ProductPreview = () => {
 
                         {/* Add to Cart */}
                         <button
-                            onClick={addToCart}
-                            className={`mt-4 w-full md:w-1/2 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available ? 'bg-gray-400 cursor-not-allowed' : ''
-                                }`}
+                            onClick={handleAddToCart}
+                            className={`mt-4 w-full md:w-1/2 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                             disabled={!product.available}
                         >
                             {product.available ? 'Add to Cart' : 'Out of Stock'}
@@ -175,7 +173,7 @@ const ProductPreview = () => {
                                 />
                                 <h4 className="text-lg font-semibold mt-2">{relatedProduct.name}</h4>
                                 <p className="text-blue-600 font-bold">
-                                    R{relatedProduct.price} / {relatedProduct.unit}
+                                    R{relatedProduct.price.toFixed(2)} / {relatedProduct.unit}
                                 </p>
                             </div>
                         ))}

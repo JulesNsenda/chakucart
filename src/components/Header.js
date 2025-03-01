@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ProductContext } from '../context/ProductContext';
 
 const Header = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const { cart } = useContext(ProductContext);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -36,8 +38,13 @@ const Header = () => {
                     <Link to="/contact" className="text-gray-700 hover:text-green-600">
                         Contact
                     </Link>
-                    <Link to="/cart" className="text-gray-700 hover:text-green-600">
-                        Cart (0)
+                    <Link to="/cart" className="relative text-gray-700 hover:text-green-600">
+                        Cart
+                        {cart.length > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                {cart.length}
+                            </span>
+                        )}
                     </Link>
                     <Link to="/auth" className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
                         Sign In

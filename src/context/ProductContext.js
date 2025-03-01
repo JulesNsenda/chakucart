@@ -4,28 +4,53 @@ import generateRandomProducts, { imageMap } from '../data/products';
 export const ProductContext = createContext();
 
 export const ProductProvider = ({ children }) => {
-    const [products, setProducts] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [cart, setCart] = useState([]); // In-memory cart (resets on restart)
-    const [promotedIds, setPromotedIds] = useState([]); // State for promoted IDs
-    const itemsPerPage = 8; // Ensure 8 items per page (default, overridden by dropdown)
+    const [products, setProducts] = useState(() => {
+        // Check if this is a new browser session
+        const sessionFlag = sessionStorage.getItem('freshCartSession');
+        const savedProducts = localStorage.getItem('freshCartProducts');
 
-    useEffect(() => {
-        // Generate unique products on mount, reset on browser restart
-        const uniqueProducts = generateUniqueRandomProducts(20);
-        setProducts(uniqueProducts);
-    }, []);
-
-    // Set promoted IDs after products are loaded
-    useEffect(() => {
-        if (products.length > 0) {
-            const ids = products
-                .sort(() => 0.5 - Math.random()) // Random sort
-                .slice(0, 2) // Pick 2 items
-                .map(product => product.id);
-            setPromotedIds(ids);
+        if (!sessionFlag) {
+            // New session (browser restart): Generate new products
+            const newProducts = generateRandomProducts(20);
+            localStorage.setItem('freshCartProducts', JSON.stringify(newProducts));
+            sessionStorage.setItem('freshCartSession', 'active');
+            return newProducts;
         }
+
+        // Existing session: Load from localStorage or generate if none exist
+        return savedProducts ? JSON.parse(savedProducts) : generateRandomProducts(20);
+    });
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [cart, setCart] = useState(() => {
+        const savedCart = localStorage.getItem('freshCartCart');
+        return savedCart ? JSON.parse(savedCart) : [];
+    });
+    const [promotedIds, setPromotedIds] = useState(() => {
+        const savedPromotedIds = localStorage.getItem('freshCartPromotedIds');
+        if (savedPromotedIds && products.length > 0) {
+            return JSON.parse(savedPromotedIds);
+        }
+        return products.length > 0
+            ? products.sort(() => 0.5 - Math.random()).slice(0, 2).map(product => product.id)
+            : [];
+    });
+    const itemsPerPage = 8;
+
+    // Save products to localStorage when they change
+    useEffect(() => {
+        localStorage.setItem('freshCartProducts', JSON.stringify(products));
     }, [products]);
+
+    // Save cart to localStorage when it changes
+    useEffect(() => {
+        localStorage.setItem('freshCartCart', JSON.stringify(cart));
+    }, [cart]);
+
+    // Save promoted IDs to localStorage when they change
+    useEffect(() => {
+        localStorage.setItem('freshCartPromotedIds', JSON.stringify(promotedIds));
+    }, [promotedIds]);
 
     // Pagination logic
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -34,50 +59,46 @@ export const ProductProvider = ({ children }) => {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+    // Cart methods
+    const addToCart = (product) => {
+        if (product.available) {
+            const isPromoted = promotedIds.includes(product.id);
+            const cartItem = isPromoted ? { ...product, price: Number((product.price * 0.85).toFixed(2)) } : product;
+            setCart([...cart, cartItem]);
+        }
+    };
+
+    const removeFromCart = (productId) => {
+        setCart(cart.filter(item => item.id !== productId));
+    };
+
+    const updateCartQuantity = (productId, quantity) => {
+        if (quantity < 1) return removeFromCart(productId);
+        setCart(cart.map(item =>
+            item.id === productId ? { ...item, quantity: quantity } : item
+        ));
+    };
+
+    const clearCart = () => {
+        setCart([]);
+        localStorage.removeItem('freshCartCart');
+    };
+
     return (
-        <ProductContext.Provider value={{ products: currentProducts, allProducts: products, cart, setCart, promotedIds, paginate, currentPage, itemsPerPage }}>
+        <ProductContext.Provider value={{
+            products: currentProducts,
+            allProducts: products,
+            cart,
+            addToCart,
+            removeFromCart,
+            updateCartQuantity,
+            clearCart,
+            promotedIds,
+            paginate,
+            currentPage,
+            itemsPerPage
+        }}>
             {children}
         </ProductContext.Provider>
     );
 };
-
-// Helper function to ensure no duplicates
-function generateUniqueRandomProducts(count) {
-    const seen = new Set();
-    const uniqueProducts = [];
-    const groceryNames = [
-        'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
-        'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
-        'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
-    ];
-    const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
-
-    while (uniqueProducts.length < count && seen.size < groceryNames.length) {
-        const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
-        if (!seen.has(name)) {
-            seen.add(name);
-            const product = {
-                id: uniqueProducts.length + 1,
-                name,
-                description: `Fresh ${name} from local markets`,
-                price: Number((Math.random() * 20 + 1).toFixed(2)),
-                unit: getUnitForCategory(name),
-                quantity: Math.floor(Math.random() * 10) + 1,
-                available: Math.random() > 0.1,
-                image: imageMap[name],
-            };
-            uniqueProducts.push(product);
-        }
-    }
-    return uniqueProducts;
-}
-
-// Function for specific units based on category
-function getUnitForCategory(name) {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
-    if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
-    if (lowerName.includes('bread')) return 'loaf';
-    if (lowerName.includes('eggs')) return 'dozen';
-    return 'each'; // Default for others
-}

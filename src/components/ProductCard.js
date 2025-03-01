@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 
 const ProductCard = ({ product }) => {
-    const { cart, setCart } = useContext(ProductContext); // Access cart from context
+    const { addToCart } = useContext(ProductContext);
 
-    const addToCart = () => {
+    const handleAddToCart = () => {
         if (product.available) {
-            setCart([...cart, product]);
-            alert(`${product.name} added to cart!`); // Simple feedback (could be a toast later)
+            addToCart(product);
+            alert(`${product.name} added to cart!`); // Simple feedback (can replace with toast later)
         }
     };
 
@@ -38,9 +38,8 @@ const ProductCard = ({ product }) => {
                 </p>
                 <div className="mt-4">
                     <button
-                        onClick={addToCart}
-                        className={`w-full py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available ? 'bg-gray-400 cursor-not-allowed' : ''
-                            }`}
+                        onClick={handleAddToCart}
+                        className={`w-full py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                         disabled={!product.available}
                     >
                         {product.available ? 'Add to Cart' : 'Out of Stock'}
