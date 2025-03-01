@@ -7,8 +7,8 @@ const Hero = ({ onShopNow }) => {
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
                     Fresh Groceries, Delivered Fast
                 </h1>
-                <p className="text-lg text-gray-600 mb-6">
-                    Shop from local markets and supermarkets with ease.
+                <p className="text-lg text-gray-600 mb-6 line-clamp-1">
+                    Shop from local markets and supermarkets with ease...
                 </p>
                 <button onClick={onShopNow} className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 text-lg transition-colors">
                     Shop Now

@@ -6,13 +6,26 @@ export const ProductContext = createContext();
 export const ProductProvider = ({ children }) => {
     const [products, setProducts] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8; // Ensure 8 items per page
+    const [cart, setCart] = useState([]); // In-memory cart (resets on restart)
+    const [promotedIds, setPromotedIds] = useState([]); // State for promoted IDs
+    const itemsPerPage = 8; // Ensure 8 items per page (default, overridden by dropdown)
 
     useEffect(() => {
         // Generate unique products on mount, reset on browser restart
         const uniqueProducts = generateUniqueRandomProducts(20);
         setProducts(uniqueProducts);
     }, []);
+
+    // Set promoted IDs after products are loaded
+    useEffect(() => {
+        if (products.length > 0) {
+            const ids = products
+                .sort(() => 0.5 - Math.random()) // Random sort
+                .slice(0, 2) // Pick 2 items
+                .map(product => product.id);
+            setPromotedIds(ids);
+        }
+    }, [products]);
 
     // Pagination logic
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -22,7 +35,7 @@ export const ProductProvider = ({ children }) => {
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
-        <ProductContext.Provider value={{ products: currentProducts, allProducts: products, paginate, currentPage, itemsPerPage }}>
+        <ProductContext.Provider value={{ products: currentProducts, allProducts: products, cart, setCart, promotedIds, paginate, currentPage, itemsPerPage }}>
             {children}
         </ProductContext.Provider>
     );
