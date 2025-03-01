@@ -37,18 +37,28 @@ const Home = () => {
     e.preventDefault();
     if (searchTerm.trim()) {
       setSearchParams({ q: searchTerm.trim() }); // Update URL with search query
-      // No need to navigate manually; useEffect will handle re-render
     } else {
       setSearchParams({}); // Clear search if empty
     }
   };
 
-  // Handle search, sort, and filter
-  const [filteredProducts, setFilteredProducts] = useState(allProducts);
+  // Handle search, sort, and filter (ensure exactly 20 unique products)
+  const [filteredProducts, setFilteredProducts] = useState(() => {
+    // Start with exactly 20 unique products from allProducts
+    const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
+    if (uniqueProducts.length !== 20) {
+      console.error('allProducts should have exactly 20 unique items, regenerating locally...');
+      return generateExactlyTwentyUniqueProductsFromExisting(allProducts);
+    }
+    return uniqueProducts;
+  });
 
   useEffect(() => {
     const searchQuery = searchParams.get('q') || '';
     let filtered = [...allProducts];
+
+    // Ensure uniqueness in filtered array
+    filtered = Array.from(new Map(filtered.map(p => [p.id, p])).values());
 
     // Apply search (case-insensitive, handling plural/singular)
     if (searchQuery) {
@@ -83,7 +93,9 @@ const Home = () => {
     if (sortBy === 'name-asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
     if (sortBy === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
 
-    setFilteredProducts(filtered);
+    // Ensure final filtered list has no duplicates and limit to 20 if more
+    const finalProducts = Array.from(new Map(filtered.map(p => [p.id, p])).values());
+    setFilteredProducts(finalProducts.slice(0, 20)); // Limit to exactly 20 unique products
   }, [allProducts, searchParams, sortBy, category]);
 
   // Sync searchTerm with searchParams on mount or param changes
@@ -232,5 +244,55 @@ const Home = () => {
     </div>
   );
 };
+
+// Helper function to generate exactly 20 unique products from existing list (fallback)
+function generateExactlyTwentyUniqueProductsFromExisting(existingProducts) {
+  const seen = new Set();
+  const uniqueProducts = [];
+  const groceryNames = [
+    'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
+    'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
+    'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
+  ];
+
+  // Use existing products first, ensuring uniqueness
+  existingProducts.forEach(product => {
+    if (!seen.has(product.name) && uniqueProducts.length < 20) {
+      uniqueProducts.push(product);
+      seen.add(product.name);
+    }
+  });
+
+  // Fill remaining slots with new unique products
+  while (uniqueProducts.length < 20) {
+    const name = groceryNames.find(n => !seen.has(n));
+    if (name) {
+      seen.add(name);
+      const product = {
+        id: uniqueProducts.length + 1,
+        name,
+        description: `Fresh ${name} from local markets`,
+        price: Number((Math.random() * 20 + 1).toFixed(2)),
+        unit: getUnitForCategory(name), // Use getUnitForCategory from ProductContext or define here
+        quantity: Math.floor(Math.random() * 10) + 1,
+        available: Math.random() > 0.1,
+        image: imageMap[name], // Use imageMap from ProductContext or import
+      };
+      uniqueProducts.push(product);
+    }
+  }
+
+  return uniqueProducts;
+}
+
+// Function for specific units based on category (needed if not using ProductContext)
+function getUnitForCategory(name) {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
+  if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
+  if (lowerName.includes('bread')) return 'loaf';
+  if (lowerName.includes('eggs')) return 'dozen';
+  return 'each'; // Default for others
+}
 
 export default Home;
