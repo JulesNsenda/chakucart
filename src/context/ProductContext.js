@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { imageMap } from '../data/products';
+import generateRandomProducts, { imageMap } from '../data/products';
 
 export const ProductContext = createContext();
 
@@ -28,9 +28,19 @@ export const ProductProvider = ({ children }) => {
         const savedCart = localStorage.getItem('freshCartCart');
         return savedCart ? JSON.parse(savedCart) : [];
     });
+    const [savedForLater, setSavedForLater] = useState(() => {
+        // Load saved-for-later items from localStorage if available, otherwise use empty array
+        const savedItems = localStorage.getItem('freshCartSaved');
+        return savedItems ? JSON.parse(savedItems) : [];
+    });
+    const [reviews, setReviews] = useState(() => {
+        // Load reviews from localStorage if available, otherwise use empty object
+        const savedReviews = localStorage.getItem('freshCartReviews');
+        return savedReviews ? JSON.parse(savedReviews) : {};
+    });
     const itemsPerPage = 8; // Ensure 8 items per page (default, overridden by dropdown)
 
-    // Save products and cart to localStorage when they change (persist across refreshes)
+    // Save products, cart, saved items, and reviews to localStorage when they change
     useEffect(() => {
         // Ensure exactly 20 unique products are saved
         const uniqueProducts = Array.from(new Map(products.map(p => [p.id, p])).values());
@@ -47,6 +57,14 @@ export const ProductProvider = ({ children }) => {
     useEffect(() => {
         localStorage.setItem('freshCartCart', JSON.stringify(cart));
     }, [cart]);
+
+    useEffect(() => {
+        localStorage.setItem('freshCartSaved', JSON.stringify(savedForLater));
+    }, [savedForLater]);
+
+    useEffect(() => {
+        localStorage.setItem('freshCartReviews', JSON.stringify(reviews));
+    }, [reviews]);
 
     // Pagination logic
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -91,72 +109,41 @@ export const ProductProvider = ({ children }) => {
         localStorage.removeItem('freshCartCart'); // Clear localStorage as well
     };
 
-    // Helper function to generate exactly 20 unique products (no duplicates by name or ID)
-    function generateExactlyTwentyUniqueProducts() {
-        const seen = new Set();
-        const uniqueProducts = [];
-        const groceryNames = [
-            'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
-            'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
-            'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
-        ];
-        const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
-
-        // Ensure exactly 20 unique products by iterating until we have 20
-        while (uniqueProducts.length < 20 && seen.size < groceryNames.length) {
-            const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
-            if (!seen.has(name)) {
-                seen.add(name);
-                const product = {
-                    id: uniqueProducts.length + 1, // Ensure unique IDs
-                    name,
-                    description: `Fresh ${name} from local markets`,
-                    price: Number((Math.random() * 20 + 1).toFixed(2)),
-                    unit: getUnitForCategory(name),
-                    quantity: Math.floor(Math.random() * 10) + 1,
-                    available: Math.random() > 0.1,
-                    image: imageMap[name],
-                };
-                uniqueProducts.push(product);
-            }
+    // Saved for Later methods
+    const saveForLater = (productId) => {
+        const product = cart.find(item => item.id === productId);
+        if (product) {
+            setSavedForLater(prev => [...prev, { ...product, cartQuantity: product.cartQuantity || 1 }]);
+            removeFromCart(productId);
         }
+    };
 
-        // This should never happen with 20 grocery names, but as a safeguard
-        if (uniqueProducts.length < 20) {
-            console.error('Failed to generate 20 unique products, adding fallback unique products...');
-            while (uniqueProducts.length < 20) {
-                const baseName = groceryNames[Math.floor(Math.random() * groceryNames.length)];
-                const variation = uniqueProducts.length + 1;
-                const name = `Extra ${baseName} ${variation}`;
-                if (!seen.has(name)) {
-                    seen.add(name);
-                    const product = {
-                        id: uniqueProducts.length + 1,
-                        name,
-                        description: `Fresh ${name} from local markets`,
-                        price: Number((Math.random() * 20 + 1).toFixed(2)),
-                        unit: units[Math.floor(Math.random() * units.length)],
-                        quantity: Math.floor(Math.random() * 10) + 1,
-                        available: Math.random() > 0.1,
-                        image: imageMap[baseName] || imageMap[groceryNames[0]], // Fallback to first image if needed
-                    };
-                    uniqueProducts.push(product);
-                }
-            }
+    const removeFromSaved = (productId) => {
+        setSavedForLater(savedForLater.filter(item => item.id !== productId));
+    };
+
+    const moveToCart = (productId) => {
+        const product = savedForLater.find(item => item.id === productId);
+        if (product) {
+            addToCart({ ...product, cartQuantity: product.cartQuantity });
+            removeFromSaved(productId);
         }
+    };
 
-        return uniqueProducts;
-    }
+    // Review methods
+    const addReview = (productId, rating, comment) => {
+        setReviews(prev => ({
+            ...prev,
+            [productId]: [...(prev[productId] || []), { rating, comment, date: new Date().toISOString() }]
+        }));
+    };
 
-    // Function for specific units based on category
-    function getUnitForCategory(name) {
-        const lowerName = name.toLowerCase();
-        if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
-        if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
-        if (lowerName.includes('bread')) return 'loaf';
-        if (lowerName.includes('eggs')) return 'dozen';
-        return 'each'; // Default for others
-    }
+    const getAverageRating = (productId) => {
+        const reviewsForProduct = reviews[productId] || [];
+        if (reviewsForProduct.length === 0) return 0;
+        const total = reviewsForProduct.reduce((sum, review) => sum + review.rating, 0);
+        return (total / reviewsForProduct.length).toFixed(1);
+    };
 
     return (
         <ProductContext.Provider value={{
@@ -167,12 +154,99 @@ export const ProductProvider = ({ children }) => {
             removeFromCart,
             updateCartQuantity,
             clearCart,
+            savedForLater,
+            saveForLater,
+            removeFromSaved,
+            moveToCart,
+            reviews,
+            addReview,
+            getAverageRating,
             paginate,
             currentPage,
-            itemsPerPage,
-            imageMap, // Add to context value
+            itemsPerPage
         }}>
             {children}
         </ProductContext.Provider>
     );
+};
+
+// Helper function to generate exactly 20 unique products (no duplicates by name or ID)
+function generateExactlyTwentyUniqueProducts() {
+    const seen = new Set();
+    const uniqueProducts = [];
+    const groceryNames = [
+        'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
+        'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
+        'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
+    ];
+    const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
+
+    // Ensure exactly 20 unique products by iterating until we have 20
+    while (uniqueProducts.length < 20 && seen.size < groceryNames.length) {
+        const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
+        if (!seen.has(name)) {
+            seen.add(name);
+            const product = {
+                id: uniqueProducts.length + 1, // Ensure unique IDs
+                name,
+                description: `Fresh ${name} from local markets`,
+                price: Number((Math.random() * 20 + 1).toFixed(2)),
+                unit: getUnitForCategory(name),
+                quantity: Math.floor(Math.random() * 10) + 1,
+                available: Math.random() > 0.1,
+                image: imageMap[name],
+                category: determineCategory(name), // Add category for filtering and related products
+            };
+            uniqueProducts.push(product);
+        }
+    }
+
+    // This should never happen with 20 grocery names, but as a safeguard
+    if (uniqueProducts.length < 20) {
+        console.error('Failed to generate 20 unique products, adding fallback unique products...');
+        while (uniqueProducts.length < 20) {
+            const baseName = groceryNames[Math.floor(Math.random() * groceryNames.length)];
+            const variation = uniqueProducts.length + 1;
+            const name = `Extra ${baseName} ${variation}`;
+            if (!seen.has(name)) {
+                seen.add(name);
+                const product = {
+                    id: uniqueProducts.length + 1,
+                    name,
+                    description: `Fresh ${name} from local markets`,
+                    price: Number((Math.random() * 20 + 1).toFixed(2)),
+                    unit: units[Math.floor(Math.random() * units.length)],
+                    quantity: Math.floor(Math.random() * 10) + 1,
+                    available: Math.random() > 0.1,
+                    image: imageMap[baseName] || imageMap[groceryNames[0]], // Fallback to first image if needed
+                    category: determineCategory(baseName),
+                };
+                uniqueProducts.push(product);
+            }
+        }
+    }
+
+    return uniqueProducts;
+}
+
+// Function for specific units based on category
+function getUnitForCategory(name) {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
+    if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
+    if (lowerName.includes('bread')) return 'loaf';
+    if (lowerName.includes('eggs')) return 'dozen';
+    return 'each'; // Default for others
+}
+
+// Function to determine product category
+function determineCategory(name) {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
+    if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
+    if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
+    if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
+    if (lowerName.includes('bread')) return 'bread';
+    if (lowerName.includes('juice')) return 'beverages';
+    return 'all'; // Default category
 }

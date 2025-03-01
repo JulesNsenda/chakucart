@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { imageMap } from '../data/products';
@@ -7,45 +7,83 @@ import Hero from '../components/Hero';
 import ProductCard from '../components/ProductCard';
 import Footer from '../components/Footer';
 
+// Loading skeleton component
+const ProductSkeleton = () => (
+  <div className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse">
+    <div className="h-40 bg-gray-300"></div>
+    <div className="p-4">
+      <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
+      <div className="h-4 bg-gray-300 rounded w-1/2 mb-2"></div>
+      <div className="h-4 bg-gray-300 rounded w-1/3 mb-4"></div>
+      <div className="h-10 bg-gray-300 rounded"></div>
+    </div>
+  </div>
+);
+
 // Helper function to normalize text for plural/singular matching
 const normalizeText = (text) => {
   let normalized = text.toLowerCase().trim();
-  // Remove common plural endings (simple heuristic for "s" or "es")
-  if (normalized.endsWith('s')) {
-    normalized = normalized.slice(0, -1); // Remove 's'
-  }
-  if (normalized.endsWith('es')) {
-    normalized = normalized.slice(0, -2); // Remove 'es'
-  }
+  if (normalized.endsWith('s')) normalized = normalized.slice(0, -1); // Remove 's'
+  if (normalized.endsWith('es')) normalized = normalized.slice(0, -2); // Remove 'es'
   return normalized;
 };
 
 const Home = () => {
   const { allProducts, paginate, currentPage, itemsPerPage, cart, addToCart } = useContext(ProductContext);
-  const [searchParams, setSearchParams] = useSearchParams(); // Read and write search params
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || ''); // Sync with URL query
+  const [stockStatus, setStockStatus] = useState('all'); // New state for stock status
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const navigate = useNavigate();
-  const productsRef = useRef(null); // Ref for the products section
-  const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8); // State for items per page dropdown (default 8)
+  const productsRef = useRef(null);
+  const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
+  const searchInputRef = useRef(null);
 
   // Categories for filtering
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
+  const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
 
-  // Handle search
+  // Memoize product names for autocomplete
+  const productNames = useMemo(() => allProducts.map(p => p.name), [allProducts]);
+
+  // Handle search with loading state
   const handleSearch = (e) => {
     e.preventDefault();
+    setIsLoading(true);
     if (searchTerm.trim()) {
-      setSearchParams({ q: searchTerm.trim() }); // Update URL with search query
+      setSearchParams({ q: searchTerm.trim() });
     } else {
-      setSearchParams({}); // Clear search if empty
+      setSearchParams({});
+    }
+    setTimeout(() => setIsLoading(false), 500); // Simulate network delay
+  };
+
+  // Handle autocomplete suggestions
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (value) {
+      const suggestions = productNames
+        .filter(name => normalizeText(name).includes(normalizeText(value)))
+        .slice(0, 5); // Show top 5 suggestions
+      setSearchSuggestions(suggestions);
+    } else {
+      setSearchSuggestions([]);
     }
   };
 
-  // Handle search, sort, and filter (ensure exactly 20 unique products)
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion) => {
+    setSearchTerm(suggestion);
+    setSearchSuggestions([]);
+    setSearchParams({ q: suggestion });
+  };
+
+  // Handle search, sort, filter, and stock status (ensure exactly 20 unique products)
   const [filteredProducts, setFilteredProducts] = useState(() => {
-    // Start with exactly 20 unique products from allProducts
     const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
     if (uniqueProducts.length !== 20) {
       console.error('allProducts should have exactly 20 unique items, regenerating locally...');
@@ -55,6 +93,7 @@ const Home = () => {
   });
 
   useEffect(() => {
+    setIsLoading(true);
     const searchQuery = searchParams.get('q') || '';
     let filtered = [...allProducts];
 
@@ -76,16 +115,14 @@ const Home = () => {
 
     // Apply category filter
     if (category !== 'all') {
-      filtered = filtered.filter((product) => {
-        const lowerName = product.name.toLowerCase();
-        if (category === 'fruits') return lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes');
-        if (category === 'vegetables') return lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach');
-        if (category === 'dairy') return lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt');
-        if (category === 'meat') return lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish');
-        if (category === 'bread') return lowerName.includes('bread');
-        if (category === 'beverages') return lowerName.includes('juice');
-        return false;
-      });
+      filtered = filtered.filter((product) => product.category === category);
+    }
+
+    // Apply stock status filter
+    if (stockStatus === 'in-stock') {
+      filtered = filtered.filter(product => product.available && product.quantity > 0);
+    } else if (stockStatus === 'out-of-stock') {
+      filtered = filtered.filter(product => !product.available || product.quantity === 0);
     }
 
     // Apply sorting
@@ -97,12 +134,13 @@ const Home = () => {
     // Ensure final filtered list has no duplicates and limit to 20 if more
     const finalProducts = Array.from(new Map(filtered.map(p => [p.id, p])).values());
     setFilteredProducts(finalProducts.slice(0, 20)); // Limit to exactly 20 unique products
-  }, [allProducts, searchParams, sortBy, category]);
+    setTimeout(() => setIsLoading(false), 500); // Simulate network delay
+  }, [allProducts, searchParams, sortBy, category, stockStatus]);
 
   // Sync searchTerm with searchParams on mount or param changes
   useEffect(() => {
     const searchQuery = searchParams.get('q') || '';
-    setSearchTerm(searchQuery); // Update searchTerm to match URL query
+    setSearchTerm(searchQuery);
   }, [searchParams]);
 
   // Handle "Shop Now" button click to scroll to products
@@ -118,7 +156,7 @@ const Home = () => {
   };
 
   // Pagination controls for filtered products
-  const indexOfLastItem = currentPage * itemsPerPageOptions; // Use itemsPerPageOptions instead of itemsPerPage
+  const indexOfLastItem = currentPage * itemsPerPageOptions;
   const indexOfFirstItem = indexOfLastItem - itemsPerPageOptions;
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPageOptions);
@@ -129,35 +167,55 @@ const Home = () => {
       <main className="flex-1">
         <Hero onShopNow={handleShopNow} />
         <section className="container mx-auto px-4 py-12">
-          {/* Search, Sort, and Filter Section */}
+          {/* Search, Sort, Filter, and Stock Status Section */}
           <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              {/* Search Bar */}
-              <form onSubmit={handleSearch} className="w-full md:w-1/2">
+              {/* Search Bar with Autocomplete */}
+              <form onSubmit={handleSearch} className="w-full md:w-1/2 relative">
                 <div className="relative flex items-center">
                   <input
                     type="text"
                     placeholder="Search groceries..."
                     className="w-full p-3 pl-4 pr-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleInputChange}
+                    ref={searchInputRef}
+                    aria-label="Search groceries"
                   />
                   <button
                     type="submit"
                     className="p-2 bg-green-500 text-white rounded-r-md hover:bg-green-600 transition-colors ml-2"
                   >
-                    Search
+                    {isLoading ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : (
+                      'Search'
+                    )}
                   </button>
                 </div>
+                {searchSuggestions.length > 0 && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
+                    {searchSuggestions.map((suggestion, index) => (
+                      <li
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                      >
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </form>
 
-              {/* Sort and Filter Dropdowns */}
+              {/* Sort, Filter, and Stock Status Dropdowns */}
               <div className="flex flex-col md:flex-row gap-4 w-full md:w-1/2">
                 {/* Sort */}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                  aria-label="Sort products"
                 >
                   <option value="none">Sort By</option>
                   <option value="price-asc">Price: Low to High</option>
@@ -171,10 +229,25 @@ const Home = () => {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                  aria-label="Filter by category"
                 >
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Filter by Stock Status */}
+                <select
+                  value={stockStatus}
+                  onChange={(e) => setStockStatus(e.target.value)}
+                  className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                  aria-label="Filter by stock status"
+                >
+                  {stockStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
                     </option>
                   ))}
                 </select>
@@ -185,7 +258,11 @@ const Home = () => {
           <div ref={productsRef}>
             <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Our Products</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {currentProducts.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 8 }).map((_, index) => (
+                  <ProductSkeleton key={index} />
+                ))
+              ) : currentProducts.length > 0 ? (
                 currentProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))
@@ -194,7 +271,7 @@ const Home = () => {
               )}
             </div>
             {/* Pagination and Items Per Page */}
-            {currentProducts.length > 0 && (
+            {!isLoading && currentProducts.length > 0 && (
               <div className="mt-12 flex flex-col md:flex-row justify-center items-center gap-6">
                 {/* Pagination */}
                 <div className="flex justify-center space-x-2">
@@ -206,6 +283,7 @@ const Home = () => {
                           ? 'bg-green-500 text-white'
                           : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                         } transition-colors`}
+                      aria-label={`Page ${i + 1}`}
                     >
                       {i + 1}
                     </button>
@@ -217,6 +295,7 @@ const Home = () => {
                   value={itemsPerPageOptions}
                   onChange={handleItemsPerPageChange}
                   className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                  aria-label="Items per page"
                 >
                   <option value={8}>8 Items</option>
                   <option value={12}>12 Items</option>
@@ -227,17 +306,19 @@ const Home = () => {
             )}
 
             {/* Payment Methods */}
-            <div className="mt-12 text-center">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Payment Methods Supported</h3>
-              <div className="flex justify-center gap-6">
-                <span className="inline-flex items-center px-4 py-2 bg-gray-100 rounded-md text-gray-700">
-                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18"></path>
-                  </svg>
-                  Paystack
-                </span>
+            {!isLoading && (
+              <div className="mt-12 text-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4" role="heading">Payment Methods Supported</h3>
+                <div className="flex justify-center gap-6" role="list">
+                  <span className="inline-flex items-center px-4 py-2 bg-gray-100 rounded-md text-gray-700" role="listitem">
+                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18"></path>
+                    </svg>
+                    Paystack
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
       </main>
@@ -278,6 +359,7 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, image
         quantity: Math.floor(Math.random() * 10) + 1,
         available: Math.random() > 0.1,
         image: imageMap[name],
+        category: determineCategory(name),
       };
       uniqueProducts.push(product);
     }
@@ -294,6 +376,18 @@ function getUnitForCategory(name) {
   if (lowerName.includes('bread')) return 'loaf';
   if (lowerName.includes('eggs')) return 'dozen';
   return 'each'; // Default for others
+}
+
+// Function to determine product category
+function determineCategory(name) {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
+  if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
+  if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
+  if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
+  if (lowerName.includes('bread')) return 'bread';
+  if (lowerName.includes('juice')) return 'beverages';
+  return 'all'; // Default category
 }
 
 export default Home;

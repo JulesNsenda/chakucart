@@ -5,7 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const Cart = () => {
-    const { cart, removeFromCart, updateCartQuantity, clearCart } = useContext(ProductContext);
+    const { cart, removeFromCart, updateCartQuantity, clearCart, savedForLater, saveForLater, removeFromSaved, moveToCart } = useContext(ProductContext);
     const navigate = useNavigate();
     const [location, setLocation] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town, South Africa (warehouse location)
     const [distance, setDistance] = useState(0); // Distance in kilometers
@@ -59,6 +59,7 @@ const Cart = () => {
                     <button
                         onClick={() => navigate('/')}
                         className="mt-4 mx-auto block px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+                        aria-label="Continue shopping"
                     >
                         Continue Shopping
                     </button>
@@ -77,52 +78,61 @@ const Cart = () => {
     const handleRemove = (productId) => {
         if (window.confirm('Are you sure you want to remove this item from your cart?')) {
             removeFromCart(productId);
-            // Removed showToast('Item removed from cart')
         }
     };
 
     const handleClear = () => {
         if (window.confirm('Are you sure you want to clear your cart?')) {
             clearCart();
-            // Removed showToast('Cart cleared')
         }
     };
 
     const handleQuantityChange = (productId, e) => {
         const newQuantity = parseInt(e.target.value) || 1;
         if (isNaN(newQuantity) || newQuantity < 1) {
-            // No toast, just reset to 1
             e.target.value = 1;
             updateCartQuantity(productId, 1);
             return;
         }
         const product = cart.find(item => item.id === productId);
         if (newQuantity > product.quantity) {
-            // No toast, just reset to max available
             updateCartQuantity(productId, product.quantity);
             e.target.value = product.quantity;
             return;
         }
         updateCartQuantity(productId, newQuantity);
-        // No toast for quantity updates
+    };
+
+    const handleSaveForLater = (productId) => {
+        saveForLater(productId);
     };
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
             <main className="flex-1 container mx-auto px-4 py-12">
+                {/* Checkout Progress Bar */}
+                <div className="mb-6">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="bg-green-500 h-2.5 rounded-full" style={{ width: '33%' }}></div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">Step 1 of 3: Cart</p>
+                </div>
+
                 <h1 className="text-3xl font-bold text-gray-800 mb-6">Your Cart</h1>
                 <div className="bg-white shadow-md rounded-lg p-6">
                     {cart.map((item) => (
                         <div
                             key={item.id}
                             className="flex items-center justify-between border-b border-gray-200 py-6 transition-all duration-300 hover:bg-gray-50"
+                            role="listitem"
                         >
                             <div className="flex items-center gap-4">
                                 <img
                                     src={item.image}
                                     alt={item.name}
                                     className="w-16 h-16 object-cover rounded-md"
+                                    loading="lazy"
                                 />
                                 <div>
                                     <h2 className="text-lg font-semibold text-gray-800">{item.name}</h2>
@@ -138,20 +148,72 @@ const Cart = () => {
                                     className="w-16 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-center"
                                     onBlur={(e) => {
                                         if (parseInt(e.target.value) < 1) {
-                                            e.target.value = 1; // Reset to minimum 1 if invalid
+                                            e.target.value = 1;
                                             updateCartQuantity(item.id, 1);
                                         }
                                     }}
+                                    aria-label={`Quantity for ${item.name}`}
                                 />
                                 <button
                                     onClick={() => handleRemove(item.id)}
-                                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300 animate-pulse-once"
+                                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
+                                    aria-label={`Remove ${item.name} from cart`}
                                 >
                                     Remove
+                                </button>
+                                <button
+                                    onClick={() => handleSaveForLater(item.id)}
+                                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors duration-300"
+                                    aria-label={`Save ${item.name} for later`}
+                                >
+                                    Save for Later
                                 </button>
                             </div>
                         </div>
                     ))}
+                    {savedForLater.length > 0 && (
+                        <div className="mt-6">
+                            <h3 className="text-xl font-semibold text-gray-800 mb-4">Saved for Later</h3>
+                            <div className="space-y-4">
+                                {savedForLater.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="flex items-center justify-between border-b border-gray-200 py-4"
+                                        role="listitem"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-12 h-12 object-cover rounded-md"
+                                                loading="lazy"
+                                            />
+                                            <div>
+                                                <h4 className="text-md font-semibold text-gray-800">{item.name}</h4>
+                                                <p className="text-gray-600">R{item.price.toFixed(2)} / {item.unit}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => moveToCart(item.id)}
+                                                className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+                                                aria-label={`Move ${item.name} back to cart`}
+                                            >
+                                                Move to Cart
+                                            </button>
+                                            <button
+                                                onClick={() => removeFromSaved(item.id)}
+                                                className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
+                                                aria-label={`Remove ${item.name} from saved`}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="mt-8 p-4 bg-gray-100 rounded-md shadow-inner">
                         <div className="flex justify-between items-center mb-4">
                             <p className="text-lg font-medium text-gray-700">Cart Summary</p>
@@ -178,6 +240,7 @@ const Cart = () => {
                         <button
                             onClick={handleClear}
                             className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-300"
+                            aria-label="Clear cart"
                         >
                             Clear Cart
                         </button>
@@ -185,6 +248,7 @@ const Cart = () => {
                             disabled
                             className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300 opacity-50 cursor-not-allowed"
                             title="Paystack integration coming soon"
+                            aria-label="Checkout with Paystack (coming soon)"
                         >
                             Checkout with Paystack
                         </button>
@@ -196,5 +260,4 @@ const Cart = () => {
     );
 };
 
-// Animation for toast (already defined in ToastContext.js, but we’re removing toast usage, no need here)
 export default Cart;
