@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import generateRandomProducts, { imageMap } from '../data/products';
+import { imageMap } from '../data/products';
 
 export const ProductContext = createContext();
 
@@ -91,6 +91,73 @@ export const ProductProvider = ({ children }) => {
         localStorage.removeItem('freshCartCart'); // Clear localStorage as well
     };
 
+    // Helper function to generate exactly 20 unique products (no duplicates by name or ID)
+    function generateExactlyTwentyUniqueProducts() {
+        const seen = new Set();
+        const uniqueProducts = [];
+        const groceryNames = [
+            'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
+            'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
+            'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
+        ];
+        const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
+
+        // Ensure exactly 20 unique products by iterating until we have 20
+        while (uniqueProducts.length < 20 && seen.size < groceryNames.length) {
+            const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
+            if (!seen.has(name)) {
+                seen.add(name);
+                const product = {
+                    id: uniqueProducts.length + 1, // Ensure unique IDs
+                    name,
+                    description: `Fresh ${name} from local markets`,
+                    price: Number((Math.random() * 20 + 1).toFixed(2)),
+                    unit: getUnitForCategory(name),
+                    quantity: Math.floor(Math.random() * 10) + 1,
+                    available: Math.random() > 0.1,
+                    image: imageMap[name],
+                };
+                uniqueProducts.push(product);
+            }
+        }
+
+        // This should never happen with 20 grocery names, but as a safeguard
+        if (uniqueProducts.length < 20) {
+            console.error('Failed to generate 20 unique products, adding fallback unique products...');
+            while (uniqueProducts.length < 20) {
+                const baseName = groceryNames[Math.floor(Math.random() * groceryNames.length)];
+                const variation = uniqueProducts.length + 1;
+                const name = `Extra ${baseName} ${variation}`;
+                if (!seen.has(name)) {
+                    seen.add(name);
+                    const product = {
+                        id: uniqueProducts.length + 1,
+                        name,
+                        description: `Fresh ${name} from local markets`,
+                        price: Number((Math.random() * 20 + 1).toFixed(2)),
+                        unit: units[Math.floor(Math.random() * units.length)],
+                        quantity: Math.floor(Math.random() * 10) + 1,
+                        available: Math.random() > 0.1,
+                        image: imageMap[baseName] || imageMap[groceryNames[0]], // Fallback to first image if needed
+                    };
+                    uniqueProducts.push(product);
+                }
+            }
+        }
+
+        return uniqueProducts;
+    }
+
+    // Function for specific units based on category
+    function getUnitForCategory(name) {
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
+        if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
+        if (lowerName.includes('bread')) return 'loaf';
+        if (lowerName.includes('eggs')) return 'dozen';
+        return 'each'; // Default for others
+    }
+
     return (
         <ProductContext.Provider value={{
             products: currentProducts,
@@ -102,76 +169,10 @@ export const ProductProvider = ({ children }) => {
             clearCart,
             paginate,
             currentPage,
-            itemsPerPage
+            itemsPerPage,
+            imageMap, // Add to context value
         }}>
             {children}
         </ProductContext.Provider>
     );
-};
-
-// Helper function to generate exactly 20 unique products (no duplicates by name or ID)
-function generateExactlyTwentyUniqueProducts() {
-    const seen = new Set();
-    const uniqueProducts = [];
-    const groceryNames = [
-        'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
-        'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
-        'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
-    ];
-    const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
-
-    // Ensure exactly 20 unique products by iterating until we have 20
-    while (uniqueProducts.length < 20 && seen.size < groceryNames.length) {
-        const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
-        if (!seen.has(name)) {
-            seen.add(name);
-            const product = {
-                id: uniqueProducts.length + 1, // Ensure unique IDs
-                name,
-                description: `Fresh ${name} from local markets`,
-                price: Number((Math.random() * 20 + 1).toFixed(2)),
-                unit: getUnitForCategory(name),
-                quantity: Math.floor(Math.random() * 10) + 1,
-                available: Math.random() > 0.1,
-                image: imageMap[name],
-            };
-            uniqueProducts.push(product);
-        }
-    }
-
-    // This should never happen with 20 grocery names, but as a safeguard
-    if (uniqueProducts.length < 20) {
-        console.error('Failed to generate 20 unique products, adding fallback unique products...');
-        while (uniqueProducts.length < 20) {
-            const baseName = groceryNames[Math.floor(Math.random() * groceryNames.length)];
-            const variation = uniqueProducts.length + 1;
-            const name = `Extra ${baseName} ${variation}`;
-            if (!seen.has(name)) {
-                seen.add(name);
-                const product = {
-                    id: uniqueProducts.length + 1,
-                    name,
-                    description: `Fresh ${name} from local markets`,
-                    price: Number((Math.random() * 20 + 1).toFixed(2)),
-                    unit: units[Math.floor(Math.random() * units.length)],
-                    quantity: Math.floor(Math.random() * 10) + 1,
-                    available: Math.random() > 0.1,
-                    image: imageMap[baseName] || imageMap[groceryNames[0]], // Fallback to first image if needed
-                };
-                uniqueProducts.push(product);
-            }
-        }
-    }
-
-    return uniqueProducts;
-}
-
-// Function for specific units based on category
-function getUnitForCategory(name) {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
-    if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
-    if (lowerName.includes('bread')) return 'loaf';
-    if (lowerName.includes('eggs')) return 'dozen';
-    return 'each'; // Default for others
 }

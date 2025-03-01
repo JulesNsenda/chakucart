@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
@@ -20,12 +20,11 @@ const normalizeText = (text) => {
 };
 
 const Home = () => {
-  const { allProducts, paginate, currentPage, itemsPerPage, cart, addToCart } = useContext(ProductContext);
+  const { allProducts, paginate, currentPage, imageMap } = useContext(ProductContext);
   const [searchParams, setSearchParams] = useSearchParams(); // Read and write search params
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || ''); // Sync with URL query
-  const navigate = useNavigate();
   const productsRef = useRef(null); // Ref for the products section
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8); // State for items per page dropdown (default 8)
 
@@ -48,7 +47,7 @@ const Home = () => {
     const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
     if (uniqueProducts.length !== 20) {
       console.error('allProducts should have exactly 20 unique items, regenerating locally...');
-      return generateExactlyTwentyUniqueProductsFromExisting(allProducts);
+      return generateExactlyTwentyUniqueProductsFromExisting(allProducts, imageMap);
     }
     return uniqueProducts;
   });
@@ -137,13 +136,13 @@ const Home = () => {
                   <input
                     type="text"
                     placeholder="Search groceries..."
-                    className="w-full p-3 pl-4 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400"
+                    className="w-full p-3 pl-4 pr-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                   <button
                     type="submit"
-                    className="p-2 bg-green-500 text-white rounded-r-md hover:bg-green-600 transition-colors"
+                    className="p-2 bg-green-500 text-white rounded-r-md hover:bg-green-600 transition-colors ml-2"
                   >
                     Search
                   </button>
@@ -246,7 +245,7 @@ const Home = () => {
 };
 
 // Helper function to generate exactly 20 unique products from existing list (fallback)
-function generateExactlyTwentyUniqueProductsFromExisting(existingProducts) {
+function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, imageMap) {
   const seen = new Set();
   const uniqueProducts = [];
   const groceryNames = [
@@ -263,7 +262,7 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts) {
     }
   });
 
-  // Fill remaining slots with new unique products
+  // Fill remaining slots with new unique products using passed imageMap
   while (uniqueProducts.length < 20) {
     const name = groceryNames.find(n => !seen.has(n));
     if (name) {
@@ -276,7 +275,7 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts) {
         unit: getUnitForCategory(name), // Use getUnitForCategory from ProductContext or define here
         quantity: Math.floor(Math.random() * 10) + 1,
         available: Math.random() > 0.1,
-        image: imageMap[name], // Use imageMap from ProductContext or import
+        image: imageMap[name],
       };
       uniqueProducts.push(product);
     }
