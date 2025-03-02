@@ -6,8 +6,10 @@ import ProductPreview from './pages/ProductPreview';
 import Cart from './pages/Cart';
 import SignIn from './pages/SignIn';
 import Subscribe from './pages/Subscribe';
-import Dashboard from './pages/Dashboard'; // Import Dashboard
-import AccountSettings from './pages/AccountSettings'; // Import AccountSettings
+import Dashboard from './pages/Dashboard';
+import AccountSettings from './pages/AccountSettings';
+import Payment from './pages/Payment';
+import OrderConfirmation from './pages/OrderConfirmation';
 import { ProductProvider } from './context/ProductContext';
 import { AuthProvider } from './context/AuthContext';
 
@@ -26,6 +28,8 @@ function App() {
             <Route path="/subscribe" element={<Subscribe />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/account-settings" element={<AccountSettings />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/order-confirmation" element={<OrderConfirmation />} />
           </Routes>
         </Router>
       </ProductProvider>
