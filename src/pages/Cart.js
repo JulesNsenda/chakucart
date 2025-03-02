@@ -1,12 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const Cart = () => {
     const { cart, removeFromCart, updateCartQuantity, clearCart, savedForLater, saveForLater, removeFromSaved, moveToCart } = useContext(ProductContext);
     const navigate = useNavigate();
+    const { user, isAuthenticated, hasRequiredDetails } = useAuth(); // Check if required details exist
     const [location, setLocation] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town, South Africa (warehouse location)
     const [distance, setDistance] = useState(0); // Distance in kilometers
     const [clientLocation, setClientLocation] = useState(null); // Client's location, initially null
@@ -25,9 +27,7 @@ const Cart = () => {
 
     // Use geolocation or manual input (simplified with mock data, run once on mount)
     useEffect(() => {
-        // Simulate getting client location (replace with real geolocation or form input)
         const getClientLocation = () => {
-            // Mock client location (e.g., 5 km away from warehouse for testing)
             const mockClientLat = -33.9249 + 0.045; // ~5 km north (approximate)
             const mockClientLon = 18.4241;
             setClientLocation({ latitude: mockClientLat, longitude: mockClientLon });
@@ -35,9 +35,8 @@ const Cart = () => {
 
         getClientLocation();
 
-        // Cleanup to prevent memory leaks
         return () => setClientLocation(null);
-    }, []); // Empty dependency array to run only on mount
+    }, []);
 
     // Calculate distance when clientLocation is set (run only when clientLocation changes)
     useEffect(() => {
@@ -48,23 +47,45 @@ const Cart = () => {
             );
             setDistance(Math.round(dist)); // Round to nearest kilometer
         }
-    }, [clientLocation, location]); // Only re-run when clientLocation or location changes
+    }, [clientLocation, location]);
 
     if (cart.length === 0) {
         return (
             <div className="flex flex-col min-h-screen bg-gray-50">
                 <Header />
-                <main className="flex-1 container mx-auto px-4 py-12">
-                    <p className="text-center text-gray-500 text-lg font-medium">Your cart is empty.</p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="mt-4 mx-auto block px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
-                        aria-label="Continue shopping"
-                    >
-                        Continue Shopping
-                    </button>
+                <main className="flex-1 p-4">
+                    <div className="max-w-4xl mx-auto">
+                        <p className="text-center text-gray-500 text-lg font-medium">Your cart is empty.</p>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="mt-4 mx-auto block px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 shadow-md hover:shadow-lg"
+                            aria-label="Continue shopping"
+                        >
+                            Continue Shopping
+                        </button>
+                    </div>
                 </main>
-                <Footer />
+                <Footer>
+                    <div className="container mx-auto px-4 py-6 bg-gray-800 text-white">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2">Quick Links</h3>
+                                <ul className="space-y-2">
+                                    <li><Link to="/" className="hover:text-green-400">Home</Link></li>
+                                    <li><Link to="/about" className="hover:text-green-400">About Us</Link></li>
+                                    <li><Link to="/contact" className="hover:text-green-400">Contact</Link></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2">Contact Us</h3>
+                                <p>Email: support@freshcart.co.za</p>
+                                <p>Phone: +27 123 456 789</p>
+                                <p>Address: 123 Fresh Street, Cape Town, South Africa</p>
+                            </div>
+                        </div>
+                        <p className="text-center mt-4 text-sm">© 2025 FreshCart. All rights reserved.</p>
+                    </div>
+                </Footer>
             </div>
         );
     }
@@ -107,12 +128,24 @@ const Cart = () => {
         saveForLater(productId);
     };
 
+    const handleCheckout = () => {
+        if (!isAuthenticated) {
+            navigate('/sign-in'); // Redirect to sign-in if not authenticated
+            return;
+        }
+        if (!hasRequiredDetails) {
+            navigate('/dashboard'); // Redirect to dashboard if details are missing
+            return;
+        }
+        navigate('/payment'); // Proceed to payment page if authenticated and details are present
+    };
+
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
-            <main className="flex-1 container mx-auto px-4 py-12">
-                <h1 className="text-3xl font-bold text-gray-800 mb-6">Your Cart</h1>
-                <div className="bg-white shadow-md rounded-lg p-6">
+            <main className="flex-1 p-4">
+                <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-6">Your Cart</h1>
                     {cart.map((item) => (
                         <div
                             key={item.id}
@@ -188,14 +221,14 @@ const Cart = () => {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => moveToCart(item.id)}
-                                                className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+                                                className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 shadow-md hover:shadow-lg"
                                                 aria-label={`Move ${item.name} back to cart`}
                                             >
                                                 Move to Cart
                                             </button>
                                             <button
                                                 onClick={() => removeFromSaved(item.id)}
-                                                className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
+                                                className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-300 shadow-md hover:shadow-lg"
                                                 aria-label={`Remove ${item.name} from saved`}
                                             >
                                                 Remove
@@ -206,7 +239,7 @@ const Cart = () => {
                             </div>
                         </div>
                     )}
-                    <div className="mt-8 p-4 bg-gray-100 rounded-md shadow-inner">
+                    <div className="mt-8 p-4 bg-gray-100 rounded-lg shadow-md">
                         <div className="flex justify-between items-center mb-4">
                             <p className="text-lg font-medium text-gray-700">Cart Summary</p>
                             <p className="text-lg font-medium text-gray-700">{itemCount} item(s)</p>
@@ -231,16 +264,15 @@ const Cart = () => {
                     <div className="mt-6 flex flex-col md:flex-row gap-4 justify-end">
                         <button
                             onClick={handleClear}
-                            className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-300"
+                            className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-300 shadow-md hover:shadow-lg"
                             aria-label="Clear cart"
                         >
                             Clear Cart
                         </button>
                         <button
-                            disabled
-                            className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300 opacity-50 cursor-not-allowed"
-                            title="Paystack integration coming soon"
-                            aria-label="Checkout (coming soon)"
+                            onClick={handleCheckout}
+                            className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 shadow-md hover:shadow-lg"
+                            aria-label="Checkout"
                         >
                             Checkout
                         </button>
