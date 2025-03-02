@@ -111,14 +111,6 @@ const Cart = () => {
         <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
             <main className="flex-1 container mx-auto px-4 py-12">
-                {/* Checkout Progress Bar */}
-                <div className="mb-6">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-green-500 h-2.5 rounded-full" style={{ width: '33%' }}></div>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">Step 1 of 3: Cart</p>
-                </div>
-
                 <h1 className="text-3xl font-bold text-gray-800 mb-6">Your Cart</h1>
                 <div className="bg-white shadow-md rounded-lg p-6">
                     {cart.map((item) => (
@@ -248,9 +240,9 @@ const Cart = () => {
                             disabled
                             className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300 opacity-50 cursor-not-allowed"
                             title="Paystack integration coming soon"
-                            aria-label="Checkout with Paystack (coming soon)"
+                            aria-label="Checkout (coming soon)"
                         >
-                            Checkout with Paystack
+                            Checkout
                         </button>
                     </div>
                 </div>
