@@ -13,31 +13,7 @@ const Payment = () => {
     const navigate = useNavigate();
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [scriptLoaded, setScriptLoaded] = useState(false);
 
-    // Load Paystack script dynamically if not already present
-    useEffect(() => {
-        if (window.PaystackPop) {
-            setScriptLoaded(true);
-        } else {
-            const script = document.createElement('script');
-            script.src = 'https://js.paystack.co/v1/inline.js';
-            script.async = true;
-            script.onload = () => setScriptLoaded(true);
-            script.onerror = () => {
-                toast.error('Failed to load Paystack script.');
-                setScriptLoaded(false);
-            };
-            document.body.appendChild(script);
-            return () => {
-                if (document.body.contains(script)) {
-                    document.body.removeChild(script);
-                }
-            };
-        }
-    }, []);
-
-    // Redirect if not authenticated or cart is empty
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/sign-in');
@@ -48,44 +24,46 @@ const Payment = () => {
 
     const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
     const tax = subtotal * 0.15; // 15% tax
-    const shipping = 5 * 10; 
-    const total = subtotal + tax + shipping; // Keep as a number
-    const totalInKobo = Math.round(total * 100); // Convert to integer kobo
+    const shipping = 5 * 10; // 5km at R10/km
+    const total = subtotal + tax + shipping;
+    const totalInKobo = Math.round(total * 100);
 
-    const handlePaystackPayment = () => {
-        if (!scriptLoaded || !window.PaystackPop) {
-            toast.error('Paystack is not available. Please try again later.');
-            return;
-        }
-
+    const handlePaystackPayment = async () => {
         setIsLoading(true);
-        const config = {
-            key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c', 
-            email: user.email,
-            amount: totalInKobo, 
-            currency: 'ZAR', 
-            ref: `FRESH${Date.now()}`, 
-            metadata: {
-                custom_fields: [
-                    {
-                        display_name: "Cart Items",
-                        variable_name: "cart_items",
-                        value: cart.map(item => `${item.name} (x${item.cartQuantity})`).join(', '),
+        try {
+            const response = await axios.post('http://localhost:5000/api/initialize-transaction', {
+                email: user.email,
+                subtotal: subtotal + tax, // Product price + tax
+                shipping: shipping,
+                cart,
+            });
+
+            if (response.data.status === 'success') {
+                const { authorization_url, reference } = response.data.data;
+                const handler = window.PaystackPop.setup({
+                    key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
+                    email: user.email,
+                    amount: totalInKobo,
+                    currency: 'ZAR',
+                    ref: reference,
+                    callback: (response) => {
+                        console.log('Payment Response:', response);
+                        verifyPayment(response.reference);
                     },
-                ],
-            },
-            callback: (response) => {
-                console.log('Payment Response:', response);
-                verifyPayment(response.reference);
-            },
-            onClose: () => {
-                setIsLoading(false);
-                toast.info('Payment window closed.');
-            },
-        };
-        console.log('Paystack Config:', config); // Debug config
-        const handler = window.PaystackPop.setup(config);
-        handler.openIframe();
+                    onClose: () => {
+                        setIsLoading(false);
+                        toast.info('Payment window closed.');
+                    },
+                });
+                handler.openIframe();
+            } else {
+                throw new Error('Initialization failed');
+            }
+        } catch (error) {
+            toast.error('Error initializing payment.');
+            console.error(error);
+            setIsLoading(false);
+        }
     };
 
     const verifyPayment = async (reference) => {
@@ -93,7 +71,7 @@ const Payment = () => {
             const response = await axios.post('http://localhost:5000/api/verify-transaction', {
                 reference,
                 cart,
-                total: total.toFixed(2), // Send formatted total to backend
+                total: total.toFixed(2),
             });
             if (response.data.status === 'success') {
                 clearCart();
@@ -158,7 +136,7 @@ const Payment = () => {
                             <p className="text-gray-800">R{tax.toFixed(2)}</p>
                         </div>
                         <div className="flex justify-between mb-2">
-                            <p className="text-gray-600">Shipping (₦10/km, 5km)</p>
+                            <p className="text-gray-600">Shipping (R10/km, 5km)</p>
                             <p className="text-gray-800">R{shipping.toFixed(2)}</p>
                         </div>
                         <div className="flex justify-between mt-2 border-t pt-2">
@@ -177,7 +155,6 @@ const Payment = () => {
                                     checked={paymentMethod === 'paystack'}
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                     className="mr-2"
-                                    disabled={!scriptLoaded}
                                 />
                                 Pay Now (Paystack)
                             </label>
@@ -196,9 +173,8 @@ const Payment = () => {
                     </div>
                     <button
                         onClick={handlePayment}
-                        disabled={isLoading || (paymentMethod === 'paystack' && !scriptLoaded)}
-                        className={`w-full py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 ${isLoading || (paymentMethod === 'paystack' && !scriptLoaded) ? 'bg-gray-400 cursor-not-allowed' : ''
-                            }`}
+                        disabled={isLoading}
+                        className={`w-full py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                     >
                         {isLoading ? 'Processing...' : 'Confirm Payment'}
                     </button>
