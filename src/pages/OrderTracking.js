@@ -1,3 +1,4 @@
+// src/pages/OrderTracking.js
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -5,7 +6,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import axios from 'axios';
 import { useToast } from '../context/ToastContext';
-
 
 const OrderTracking = () => {
     const { user, isAuthenticated, authorizationCode, codReference } = useAuth(); // Ensure codReference is included
@@ -44,25 +44,15 @@ const OrderTracking = () => {
         }
 
         if (!codReference) {
-            showToast('No COD reference found. Please place the order again.', 'warning');
+            showToast('No POD reference found. Please place the order again.', 'warning');
             return;
         }
 
-        console.log('COD Reference: ', codReference);
+        console.log('POD Reference (for card tap/swipe): ', codReference);
 
         try {
             setIsLoading(true);
-            // Verify the pre-authorization
-            const verifyResponse = await axios.get(
-                `https://api.paystack.co/transaction/verify/${codReference}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_c30b63c380c2099164c3aa0f86a5fbbbc5ba464a'}`,
-                    },
-                }
-            );
-
-            // Charge the pre-authorized amount
+            // Simulate card tap/swipe on delivery by charging via the server
             const chargeResponse = await axios.post(
                 'http://localhost:5000/api/confirm-delivery',
                 {
@@ -74,13 +64,13 @@ const OrderTracking = () => {
             );
 
             if (chargeResponse.data.status === 'success') {
-                showToast('Delivery confirmed, payment processed successfully!', 'success');
+                showToast('Delivery confirmed, payment processed successfully via card tap/swipe!', 'success');
                 fetchPendingOrders(); // Refresh orders after confirmation
             } else {
-                throw new Error(chargeResponse.data.message || 'Failed to confirm delivery.');
+                throw new Error(chargeResponse.data.message || 'Failed to confirm delivery via card tap/swipe.');
             }
         } catch (error) {
-            showToast('Failed to confirm delivery: ' + (error.message || 'Unknown error'), 'error');
+            showToast('Failed to confirm delivery via card tap/swipe: ' + (error.message || 'Unknown error'), 'error');
         } finally {
             setIsLoading(false);
         }
@@ -113,7 +103,7 @@ const OrderTracking = () => {
                                         className="mt-2 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300"
                                         disabled={isLoading}
                                     >
-                                        {isLoading ? 'Processing...' : 'Mark as Delivered'}
+                                        {isLoading ? 'Processing...' : 'Confirm Card Tap/Swipe on Delivery'}
                                     </button>
                                 </div>
                             ))}
