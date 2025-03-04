@@ -4,15 +4,16 @@ import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { toast } from 'react-toastify';
+import { useToast } from '../context/ToastContext';
 import axios from 'axios';
 
 const Payment = () => {
     const { cart, clearCart } = useContext(ProductContext);
-    const { user, isAuthenticated } = useAuth();
+    const { user, updateUserDetails, isAuthenticated, isCardLinked, authorizationCode } = useAuth();
     const navigate = useNavigate();
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -38,7 +39,7 @@ const Payment = () => {
                 cart,
             });
 
-            const { authorization_url, reference } = response.data.data;
+            const { reference } = response.data.data;
             const handler = window.PaystackPop.setup({
                 key: process.env.PAYSTACK_SECRET_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
                 email: user.email,
@@ -50,7 +51,7 @@ const Payment = () => {
             });
             handler.openIframe();
         } catch (error) {
-            toast.error('Payment initialization failed');
+            showToast('Payment initialization failed', 'error');
             setIsLoading(false);
         }
     };
@@ -66,11 +67,10 @@ const Payment = () => {
                 clearCart();
                 navigate('/order-confirmation', { state: { order: response.data.order } });
             } else {
-                toast.error('Payment verification failed.');
+                showToast('Payment verification failed.', 'error');
             }
         } catch (error) {
-            toast.error('Error verifying payment.');
-            console.error(error);
+            showToast('Error verifying payment.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -79,20 +79,40 @@ const Payment = () => {
     const handlePayOnDelivery = async () => {
         setIsLoading(true);
         try {
+            if (!isCardLinked) {
+                showToast('To use Pay on Delivery, you need to link or verify your card. Redirecting to account settings...', {
+                    onClose: () => navigate('/account-settings'),
+                }, 'warning');
+                setIsLoading(false);
+                return;
+            }
+
+            if (!authorizationCode) {
+                showToast('No authorization code found. Please link your card first.', {
+                    onClose: () => navigate('/account-settings'),
+                }, 'warning');
+
+                throw new Error('No authorization code found. Please link your card first.');
+            }
+
             const response = await axios.post('http://localhost:5000/api/pay-on-delivery', {
                 cart,
                 total: total.toFixed(2),
                 email: user.email,
+                authorizationCode,
             });
             if (response.data.status === 'success') {
                 clearCart();
-                navigate('/order-confirmation', { state: { order: response.data.order } });
+                const codReference = response.data.reference; // Use the Paystack reference from the response
+                updateUserDetails({ codReference });
+                navigate('/order-tracking', { state: { orderId: response.data.reference } });
+                showToast(`Pay on Delivery order placed for R${total.toFixed(2)}. Track your delivery to confirm receipt.`, 'success');
             } else {
+                showToast('Payment failed', 'error');
                 throw new Error(response.data.message || 'Payment failed');
             }
         } catch (error) {
-            toast.error(error.message || 'Error processing pay on delivery.');
-            console.error(error);
+            showToast(error.message || 'Error processing pay on delivery.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -100,7 +120,7 @@ const Payment = () => {
 
     const handlePayment = () => {
         if (!paymentMethod) {
-            toast.error('Please select a payment method.');
+            showToast('Please select a payment method.', 'warning');
             return;
         }
         if (paymentMethod === 'paystack') {

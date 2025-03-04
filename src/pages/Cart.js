@@ -65,27 +65,7 @@ const Cart = () => {
                         </button>
                     </div>
                 </main>
-                <Footer>
-                    <div className="container mx-auto px-4 py-6 bg-gray-800 text-white">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                            <div>
-                                <h3 className="text-lg font-semibold mb-2">Quick Links</h3>
-                                <ul className="space-y-2">
-                                    <li><Link to="/" className="hover:text-green-400">Home</Link></li>
-                                    <li><Link to="/about" className="hover:text-green-400">About Us</Link></li>
-                                    <li><Link to="/contact" className="hover:text-green-400">Contact</Link></li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold mb-2">Contact Us</h3>
-                                <p>Email: support@freshcart.co.za</p>
-                                <p>Phone: +27 123 456 789</p>
-                                <p>Address: 123 Fresh Street, Cape Town, South Africa</p>
-                            </div>
-                        </div>
-                        <p className="text-center mt-4 text-sm">© 2025 FreshCart. All rights reserved.</p>
-                    </div>
-                </Footer>
+                <Footer />
             </div>
         );
     }

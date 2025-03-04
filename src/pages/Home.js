@@ -86,7 +86,6 @@ const Home = () => {
   const [filteredProducts, setFilteredProducts] = useState(() => {
     const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
     if (uniqueProducts.length !== 20) {
-      console.error('allProducts should have exactly 20 unique items, regenerating locally...');
       return generateExactlyTwentyUniqueProductsFromExisting(allProducts, imageMap);
     }
     return uniqueProducts;

@@ -4,40 +4,60 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // Store user data (e.g., email, address, cards, isFirstTime, isAuthenticated)
+    const [user, setUser] = useState(null); // Store user data (e.g., email, address, cards, isFirstTime, isAuthenticated, linkedCard, authorizationCode, codReference)
 
-    // Load user from localStorage on mount, ensuring isAuthenticated and isFirstTime are set correctly
+    // Load user from localStorage on mount, ensuring all fields are set correctly
     useEffect(() => {
         const savedUser = localStorage.getItem('freshCartUser');
         if (savedUser) {
             const parsedUser = JSON.parse(savedUser);
-            // Restore user with isAuthenticated and isFirstTime preserved (default to false if not set)
+            console.log('Loaded user from localStorage:', parsedUser); // Debug log
+            // Restore user with all fields preserved (default to null/empty if not set)
             setUser({
                 ...parsedUser,
                 isAuthenticated: parsedUser.isAuthenticated ?? false,
                 isFirstTime: parsedUser.isFirstTime ?? false,
+                linkedCard: parsedUser.linkedCard ?? false, // Default to false if not set
+                authorizationCode: parsedUser.authorizationCode || null, // Default to null if not set
+                codReference: parsedUser.codReference || null, // Default to null if not set
             });
+        } else {
+            console.log('No user found in localStorage'); // Debug log
         }
     }, []);
 
     // Save user to localStorage when it changes, preserving all data
     useEffect(() => {
         if (user) {
-            localStorage.setItem('freshCartUser', JSON.stringify(user));
+            console.log('Saving user to localStorage:', user); // Debug log
+            try {
+                localStorage.setItem('freshCartUser', JSON.stringify(user));
+                console.log('User saved successfully to localStorage');
+            } catch (error) {
+                console.error('Failed to save user to localStorage:', error);
+            }
         } else {
             // On sign-out, preserve user data but remove auth state
             const savedUserData = localStorage.getItem('freshCartUser');
             if (savedUserData) {
                 const userData = JSON.parse(savedUserData);
                 if (userData && !user) {
-                    localStorage.setItem('freshCartUser', JSON.stringify({ ...userData, isAuthenticated: false }));
+                    console.log('Preserving user data on sign-out:', { ...userData, isAuthenticated: false }); // Debug log
+                    try {
+                        localStorage.setItem('freshCartUser', JSON.stringify({ ...userData, isAuthenticated: false }));
+                        console.log('User data preserved on sign-out');
+                    } catch (error) {
+                        console.error('Failed to preserve user data on sign-out:', error);
+                    }
                 }
+            } else {
+                console.log('No user data to preserve on sign-out');
             }
         }
     }, [user]);
 
     const signIn = (userData) => {
-        setUser({ ...userData, isAuthenticated: true, isFirstTime: false }); // Mark as authenticated, not first-time
+        setUser({ ...userData, isAuthenticated: true, isFirstTime: false, linkedCard: userData.linkedCard ?? false, authorizationCode: userData.authorizationCode || null, codReference: userData.codReference || null }); // Mark as authenticated, not first-time, preserve linkedCard, authorizationCode, and codReference
     };
 
     const signOut = () => {
@@ -50,20 +70,44 @@ export const AuthProvider = ({ children }) => {
     };
 
     const signUp = (userData) => {
-        setUser({ ...userData, isAuthenticated: true, isFirstTime: false }); // Mark as authenticated, not first-time (tutorial removed)
+        setUser({ ...userData, isAuthenticated: true, isFirstTime: false, linkedCard: false, authorizationCode: null, codReference: null }); // Mark as authenticated, not first-time, default linkedCard to false, authorizationCode to null, codReference to null
     };
 
     const updateUserDetails = (updates) => {
-        setUser(prev => prev ? { ...prev, ...updates, isAuthenticated: prev.isAuthenticated, isFirstTime: false } : prev); // Update details, preserve auth state, mark as not first-time
+        setUser(prev => prev ? {
+            ...prev,
+            ...updates,
+            isAuthenticated: prev.isAuthenticated,
+            isFirstTime: false,
+            linkedCard: updates.linkedCard ?? prev.linkedCard, // Update linkedCard if provided, otherwise retain existing value
+            authorizationCode: updates.authorizationCode ?? prev.authorizationCode, // Update authorizationCode if provided, otherwise retain existing value
+            codReference: updates.codReference ?? prev.codReference, // Update codReference if provided, otherwise retain existing value
+        } : prev); // Update details, preserve auth state, mark as not first-time, and manage linkedCard, authorizationCode, and codReference
+        console.log('Updated user details:', { ...user, ...updates }); // Debug log
     };
 
-    // Check if user is authenticated, first-time, and has required details
+    // Check if user is authenticated, first-time, has required details, and card linkage
     const isAuthenticated = user?.isAuthenticated || false;
     const isFirstTime = user?.isFirstTime || false;
     const hasRequiredDetails = user?.address && user?.cardNumber; // Check if address and cardNumber exist
+    const isCardLinked = user?.linkedCard || false; // New helper to check if card is linked
+    const authorizationCode = user?.authorizationCode || null; // Expose authorizationCode for COD
+    const codReference = user?.codReference || null; // Expose codReference for COD confirmation
 
     return (
-        <AuthContext.Provider value={{ user, signIn, signOut, signUp, updateUserDetails, isAuthenticated, isFirstTime, hasRequiredDetails }}>
+        <AuthContext.Provider value={{
+            user,
+            signIn,
+            signOut,
+            signUp,
+            updateUserDetails,
+            isAuthenticated,
+            isFirstTime,
+            hasRequiredDetails,
+            isCardLinked, // Expose isCardLinked for easy access in components
+            authorizationCode, // Expose authorizationCode for COD
+            codReference, // Expose codReference for COD confirmation
+        }}>
             {children}
         </AuthContext.Provider>
     );
