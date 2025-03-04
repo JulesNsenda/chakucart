@@ -33,35 +33,24 @@ const Payment = () => {
         try {
             const response = await axios.post('http://localhost:5000/api/initialize-transaction', {
                 email: user.email,
-                subtotal: subtotal + tax, // Product price + tax
+                subtotal: subtotal + tax, // Cart value (products + tax)
                 shipping: shipping,
                 cart,
             });
 
-            if (response.data.status === 'success') {
-                const { authorization_url, reference } = response.data.data;
-                const handler = window.PaystackPop.setup({
-                    key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
-                    email: user.email,
-                    amount: totalInKobo,
-                    currency: 'ZAR',
-                    ref: reference,
-                    callback: (response) => {
-                        console.log('Payment Response:', response);
-                        verifyPayment(response.reference);
-                    },
-                    onClose: () => {
-                        setIsLoading(false);
-                        toast.info('Payment window closed.');
-                    },
-                });
-                handler.openIframe();
-            } else {
-                throw new Error('Initialization failed');
-            }
+            const { authorization_url, reference } = response.data.data;
+            const handler = window.PaystackPop.setup({
+                key: process.env.PAYSTACK_SECRET_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
+                email: user.email,
+                amount: totalInKobo,
+                currency: 'ZAR',
+                ref: reference,
+                callback: (response) => verifyPayment(response.reference),
+                onClose: () => setIsLoading(false),
+            });
+            handler.openIframe();
         } catch (error) {
-            toast.error('Error initializing payment.');
-            console.error(error);
+            toast.error('Payment initialization failed');
             setIsLoading(false);
         }
     };
@@ -95,10 +84,14 @@ const Payment = () => {
                 total: total.toFixed(2),
                 email: user.email,
             });
-            clearCart();
-            navigate('/order-confirmation', { state: { order: response.data.order } });
+            if (response.data.status === 'success') {
+                clearCart();
+                navigate('/order-confirmation', { state: { order: response.data.order } });
+            } else {
+                throw new Error(response.data.message || 'Payment failed');
+            }
         } catch (error) {
-            toast.error('Error processing pay on delivery.');
+            toast.error(error.message || 'Error processing pay on delivery.');
             console.error(error);
         } finally {
             setIsLoading(false);

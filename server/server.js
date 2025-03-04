@@ -10,7 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const SPLIT_CODE = 'SPL_KRMNwMf4HS'; // Split for cart value (main account 12.5%, farmer 87.5%)
 
 // Function to generate a unique reference
 const generateUniqueReference = (prefix) => {
@@ -21,68 +20,43 @@ const generateUniqueReference = (prefix) => {
 
 app.post('/api/initialize-transaction', async (req, res) => {
     const { email, subtotal, shipping, cart } = req.body;
-    const totalInKobo = Math.round(subtotal * 100); // Subtotal in kobo (cart value for splitting)
-    const shippingInKobo = Math.round(shipping * 100); // Shipping in kobo
+    const cartValueInKobo = Math.round(subtotal * 100); // subtotal includes tax
+    const shippingInKobo = Math.round(shipping * 100);
+    const totalInKobo = cartValueInKobo + shippingInKobo;
 
     try {
-        // Step 1: Initialize transaction for cart value (subtotal) with SPLIT_CODE
-        const cartResponse = await axios.post(
+        // Single transaction with dynamic split
+        const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
                 email,
-                amount: totalInKobo, // Only cart value (subtotal, excluding shipping)
+                amount: totalInKobo,
                 currency: 'ZAR',
-                reference: generateUniqueReference('FRESH_CART'), // Unique reference for cart
-                split_code: SPLIT_CODE,
-                metadata: {
-                    cart_items: cart.map(item => `${item.name} (x${item.cartQuantity})`).join(', '),
-                    subtotal,
-                    shipping,
-                    type: 'cart_value',
+                reference: generateUniqueReference('FRESH'),
+                metadata: { cart, subtotal, shipping, type: 'full_payment' },
+                split: {
+                    type: 'flat',
+                    subaccounts: [
+                        {
+                            subaccount: 'ACCT_vdz831vfm2ouz9l',
+                            share: Math.round(subtotal * 0.875 * 100), // 87.5% of cart value
+                            transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
+                            bearer: "subaccount" // subaccount pays Paystack charges
+                        },
+                        {
+                            subaccount: 'ACCT_wvknbrcabu1x2dt',
+                            share: shippingInKobo, // 100% of shipping
+                        },
+                    ],
                 },
             },
-            {
-                headers: {
-                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-            }
+            { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
         );
 
-        // TODO: Send another call to make the payment of the shipment
-        // Step 2: Initialize transaction for shipping (flat amount to transporter)
-        const shippingResponse = await axios.post(
-            'https://api.paystack.co/transaction/initialize',
-            {
-                email,
-                amount: shippingInKobo, // Shipping amount in kobo
-                currency: 'ZAR',
-                reference: generateUniqueReference('FRESH_SHIPPING'), // Unique reference for shipping
-                metadata: {
-                    cart_items: cart.map(item => `${item.name} (x${item.cartQuantity})`).join(', '),
-                    subtotal,
-                    shipping,
-                    type: 'shipping',
-                },
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-
-        res.json({
-            status: 'success',
-            data: {
-                cartAuthorization: cartResponse.data.data,
-                shippingAuthorization: shippingResponse.data.data,
-            },
-        });
+        res.json({ status: 'success', data: response.data.data });
     } catch (error) {
         console.error(error.response?.data || error.message);
-        res.status(500).json({ status: 'error', message: 'Transaction initialization failed' });
+        res.status(500).json({ status: 'error', message: 'Payment failed' });
     }
 });
 
@@ -117,19 +91,30 @@ app.post('/api/verify-transaction', async (req, res) => {
 });
 
 // Handle Pay on Delivery (unchanged)
-app.post('/api/pay-on-delivery', (req, res) => {
+app.post('/api/pay-on-delivery', async (req, res) => {
     const { cart, total, email } = req.body;
 
-    const order = {
-        id: `ORD-${Date.now()}`,
-        items: cart,
-        total: total,
-        status: 'Pending',
-        paymentMethod: 'Pay on Delivery',
-        email,
-    };
+    // Check if user has a linked card and sufficient funds (example logic)
+    try {
+        const userData = await getUserPaymentDetails(email); // Implement this function to fetch user data
+        if (!userData.linkedCard || userData.availableBalance < total) {
+            return res.status(400).json({ status: 'error', message: 'Linked card or insufficient funds for Pay on Delivery' });
+        }
 
-    res.json({ status: 'success', order });
+        const order = {
+            id: `ORD-${Date.now()}`,
+            items: cart,
+            total: total,
+            status: 'Pending',
+            paymentMethod: 'Pay on Delivery',
+            email,
+        };
+
+        res.json({ status: 'success', order });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 'error', message: 'Error processing pay on delivery' });
+    }
 });
 
 app.listen(PORT, () => {
