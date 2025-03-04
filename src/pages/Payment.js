@@ -129,7 +129,7 @@ const Payment = () => {
                             <p className="text-gray-800">R{tax.toFixed(2)}</p>
                         </div>
                         <div className="flex justify-between mb-2">
-                            <p className="text-gray-600">Shipping (R10/km, 5km)</p>
+                            <p className="text-gray-600">Shipping (R10/km, 5km) <span className="text-sm text-gray-500">(Paid to Rider)</span></p>
                             <p className="text-gray-800">R{shipping.toFixed(2)}</p>
                         </div>
                         <div className="flex justify-between mt-2 border-t pt-2">
