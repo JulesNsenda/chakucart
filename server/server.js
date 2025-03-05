@@ -127,122 +127,35 @@ app.post('/api/pay-on-delivery', async (req, res) => {
     const { cart, total, email, authorizationCode } = req.body;
 
     try {
-        // Validate the authorization code from localStorage
         if (!authorizationCode) {
             return res.status(400).json({ status: 'error', message: 'No authorization code provided for Pay on Delivery' });
         }
 
-        // Pre-authorize the payment to verify funds and card validity using the authorization code
-        const totalInKobo = Math.round(parseFloat(total) * 100); // Convert ZAR to kobo
-        const reference = generateUniqueReference('POD'); // Use 'POD' for clarity (Pay on Delivery)
-        let preAuthResult = { status: 'success' };
-
-        console.log('Attempting to pre-authorize charge for amount:', totalInKobo, 'with authorization:', authorizationCode);
-        try {
-            const preAuthResponse = await axios.post(
-                'https://api.paystack.co/transaction/initialize',
-                {
-                    email,
-                    amount: totalInKobo,
-                    currency: 'ZAR',
-                    authorization_code: authorizationCode, // Use the authorization code from localStorage
-                    reference: reference,
-                    metadata: { type: 'pre_authorization_for_pod', cart, total },
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-            console.log('Pre-Authorization Response:', preAuthResponse.data);
-            preAuthResult = preAuthResponse.data;
-        } catch (preAuthError) {
-            console.error('Pre-Authorization Error:', preAuthError.response?.data || preAuthError.message);
-            console.warn('Pre-authorization failed for ZAR. Falling back to card existence check.');
-            // Fallback: Assume card is valid if authorizationCode exists, but warn about potential issues
-        }
-
-        console.log('Pre-Authorization Status is: ', preAuthResult.status);
-        if (!preAuthResult.status) {
-            throw new Error('Insufficient funds or card not valid for Pay on Delivery');
-        }
-
-        // Store pending order with Paystack reference
+        const totalInKobo = Math.round(parseFloat(total) * 100);
+        const reference = generateUniqueReference('POD');
         const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
         const shipping = 5 * 10; // 5km at R10/km
-        const order = {
-            id: `ORD-${Date.now()}`,
-            items: cart,
-            total: parseFloat(total),
-            status: 'Pending',
-            paymentMethod: 'Pay on Delivery',
-            email,
-            authorizationCode: authorizationCode,
-            paystackReference: reference, // Store the Paystack reference
-            createdAt: new Date(),
-            subtotal, // Store subtotal for split
-            shipping, // Store shipping for split
-        };
-        pendingOrders.push(order);
+        const subtotalInKobo = Math.round(subtotal * 100);
+        const shippingInKobo = Math.round(shipping * 100);
 
-        res.json({ status: 'success', order, reference: reference }); // Return the Paystack reference
-    } catch (error) {
-        console.error('Pay on Delivery Error Details:', {
-            message: error.message,
-            stack: error.stack,
-            response: error.response?.data || null,
-        });
-        res.status(500).json({ status: 'error', message: error.message || 'Error processing pay on delivery' });
-    }
-});
-
-app.post('/api/confirm-delivery', async (req, res) => {
-    const { orderId, email, authorizationCode, reference } = req.body;
-
-    try {
-        // Find the pending order
-        const order = pendingOrders.find(o => o.id === orderId && o.email === email && o.status === 'Pending');
-        if (!order) {
-            return res.status(404).json({ status: 'error', message: 'Order not found or not pending' });
-        }
-
-        console.log('Order details for POD confirmation: ', order);
-
-        // Verify the pre-authorization using the reference
-        const verifyResponse = await axios.get(
-            `https://api.paystack.co/transaction/verify/${reference}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-                },
-            }
-        );
-        console.log('Paystack Verify Response (Full):', JSON.stringify(verifyResponse.data, null, 2));
-
-        // Charge the pre-authorized amount with split configuration (simulating card tap/swipe on delivery)
-        const totalInKobo = Math.round(order.total * 100); // Convert ZAR to kobo
-        const cartValueInKobo = Math.round(order.subtotal * 100); // Subtotal in kobo (includes tax)
-        const shippingInKobo = Math.round(order.shipping * 100); // Shipping in kobo
-
-        const chargeResponse = await axios.post(
+        console.log('Attempting to pre-authorize with split for amount:', totalInKobo, 'with authorization:', authorizationCode);
+        const preAuthResponse = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
                 email,
                 amount: totalInKobo,
                 currency: 'ZAR',
-                authorization_code: authorizationCode,
-                reference: generateUniqueReference('POD_CAPTURE'), // New reference for capture
-                metadata: { type: 'capture_for_pod', orderId },
+                authorization_code: authorizationCode, // Use existing authorization code
+                reference,
+                metadata: { type: 'pre_authorization_for_pod', cart, total },
                 split: {
                     type: 'flat',
                     subaccounts: [
                         {
                             subaccount: 'ACCT_vdz831vfm2ouz9l',
-                            share: Math.round(order.subtotal * 0.875 * 100), // 87.5% of subtotal
-                            transaction_charge: Math.round(order.subtotal * 0.125 * 100), // 12.5% of subtotal
-                            bearer: "subaccount" // subaccount pays Paystack charges
+                            share: Math.round(subtotal * 0.875 * 100), // 87.5% of subtotal
+                            transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% fee
+                            bearer: 'subaccount', // Subaccount bears Paystack fees
                         },
                         {
                             subaccount: 'ACCT_wvknbrcabu1x2dt',
@@ -258,20 +171,90 @@ app.post('/api/confirm-delivery', async (req, res) => {
                 },
             }
         );
+        console.log('Pre-Authorization Response:', preAuthResponse.data);
+
+        if (!preAuthResponse.data.status) {
+            throw new Error(preAuthResponse.data.message || 'Failed to initialize pre-authorization with split');
+        }
+
+        // Note: This creates an authorization URL, but since we're using an authorization_code,
+        // it should pre-authorize without requiring user interaction. Store the reference.
+        const order = {
+            id: `ORD-${Date.now()}`,
+            items: cart,
+            total: parseFloat(total),
+            status: 'Pending',
+            paymentMethod: 'Pay on Delivery',
+            email,
+            authorizationCode,
+            paystackReference: reference,
+            createdAt: new Date(),
+            subtotal,
+            shipping,
+        };
+        pendingOrders.push(order);
+
+        res.json({ status: 'success', order, reference });
+    } catch (error) {
+        console.error('Pay on Delivery Error Details:', {
+            message: error.message,
+            stack: error.stack,
+            response: error.response?.data || null,
+        });
+        res.status(500).json({ status: 'error', message: error.message || 'Error processing pay on delivery' });
+    }
+});
+
+// Confirm Delivery with Transfer Step
+app.post('/api/confirm-delivery', async (req, res) => {
+    const { orderId, email, authorizationCode, reference } = req.body;
+
+    try {
+        const order = pendingOrders.find(o => o.id === orderId && o.email === email && o.status === 'Pending');
+        if (!order) {
+            return res.status(404).json({ status: 'error', message: 'Order not found or not pending' });
+        }
+
+        console.log('Order details for POD confirmation: ', order);
+
+        const verifyResponse = await axios.get(
+            `https://api.paystack.co/transaction/verify/${reference}`,
+            { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+        );
+        console.log('Paystack Verify Response (Full):', JSON.stringify(verifyResponse.data, null, 2));
+
+        const totalInKobo = Math.round(order.total * 100);
+        const chargeResponse = await axios.post(
+            'https://api.paystack.co/transaction/charge_authorization',
+            {
+                email,
+                amount: totalInKobo,
+                currency: 'ZAR',
+                authorization_code: authorizationCode,
+                reference: generateUniqueReference('POD_CAPTURE'),
+                metadata: { type: 'capture_for_pod', orderId },
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
         console.log('Charge Response for POD:', chargeResponse.data);
 
-        if (chargeResponse.data.status) {
-            // Update order status to 'Delivered' and remove from pending
-            order.status = 'Delivered';
-            pendingOrders = pendingOrders.filter(o => o.id !== orderId);
-
-            res.json({ status: 'success', message: 'Delivery confirmed, payment processed successfully via card tap/swipe' });
-        } else {
-            throw new Error(chargeResponse.data.message || 'Failed to charge payment via card tap/swipe');
+        if (!chargeResponse.data.status || chargeResponse.data.data.status !== 'success') {
+            throw new Error(chargeResponse.data.message || 'Failed to charge pre-authorized payment');
         }
+
+        // Split should have been applied from the initial authorization
+        order.status = 'Delivered';
+        pendingOrders = pendingOrders.filter(o => o.id !== orderId);
+
+        res.json({ status: 'success', message: 'Delivery confirmed, payment processed with split applied' });
     } catch (error) {
-        console.error('Error confirming delivery for POD:', error);
-        res.status(500).json({ status: 'error', message: error.message || 'Failed to confirm delivery and process payment via card tap/swipe' });
+        console.error('Error confirming delivery for POD:', error.response?.data || error.message);
+        res.status(500).json({ status: 'error', message: error.message || 'Failed to confirm delivery and process payment' });
     }
 });
 
