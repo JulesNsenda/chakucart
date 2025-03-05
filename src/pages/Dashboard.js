@@ -16,7 +16,7 @@ const Dashboard = () => {
     const [allOrders, setAllOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ongoing');
-    const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(3); 
+    const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(2);
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -111,7 +111,7 @@ const Dashboard = () => {
     const completedOrders = allOrders.filter(order => order.status === 'Delivered');
 
     const loadMoreCompletedOrders = () => {
-        setVisibleCompletedOrders(prev => prev + 3); 
+        setVisibleCompletedOrders(prev => prev + 2);
     };
 
     return (
@@ -189,14 +189,34 @@ const Dashboard = () => {
                                 <div className="space-y-4">
                                     {pendingOrders.map((order) => (
                                         <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                            <p className="text-gray-700 font-medium">Order #{order.id}</p>
-                                            <p className="text-gray-600">Total: R{order.total}</p>
-                                            <p className="text-gray-600">Status: {order.status}</p>
-                                            <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                            <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Order Summary (Left Column) */}
+                                                <div>
+                                                    <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                                    <p className="text-gray-600">Total: R{order.total}</p>
+                                                    <p className="text-gray-600">Status: {order.status}</p>
+                                                    <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                    <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
+                                                </div>
+
+                                                {/* Order Items (Right Column) */}
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Order Items</h3>
+                                                    <div className="space-y-2">
+                                                        {order.items.map((item) => (
+                                                            <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200">
+                                                                <span className="text-gray-700">{item.name}</span>
+                                                                <span className="text-gray-600">Qty: {item.cartQuantity || 1}</span>
+                                                                <span className="text-gray-800 font-medium">R{(item.price * (item.cartQuantity || 1)).toFixed(2)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <button
                                                 onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
-                                                className={`mt-2 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                                                className={`mt-4 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                                                 disabled={isLoading}
                                             >
                                                 {isLoading ? 'Processing...' : 'Confirm Delivery'}
@@ -218,13 +238,33 @@ const Dashboard = () => {
                                     <div className="space-y-4">
                                         {completedOrders.slice(0, visibleCompletedOrders).map((order) => (
                                             <div key={order.id} className="p-4 bg-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                                <p className="text-gray-700 font-medium">Order #{order.id}</p>
-                                                <p className="text-gray-600">Total: R{order.total}</p>
-                                                <p className="text-gray-600">Status: {order.status}</p>
-                                                <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {/* Order Summary (Left Column) */}
+                                                    <div>
+                                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                                        <p className="text-gray-600">Total: R{order.total}</p>
+                                                        <p className="text-gray-600">Status: {order.status}</p>
+                                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                    </div>
+
+                                                    {/* Order Items (Right Column) */}
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Order Items</h3>
+                                                        <div className="space-y-2">
+                                                            {order.items.map((item) => (
+                                                                <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200">
+                                                                    <span className="text-gray-700">{item.name}</span>
+                                                                    <span className="text-gray-600">Qty: {item.cartQuantity || 1}</span>
+                                                                    <span className="text-gray-800 font-medium">R{(item.price * (item.cartQuantity || 1)).toFixed(2)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 <button
                                                     onClick={() => handleReplaceOrder(order)}
-                                                    className="mt-2 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200"
+                                                    className="mt-4 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200"
                                                 >
                                                     Replace Order
                                                 </button>
