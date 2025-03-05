@@ -17,6 +17,7 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ongoing');
     const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(2);
+    const [searchTerm, setSearchTerm] = useState(''); // State for search input
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -107,8 +108,19 @@ const Dashboard = () => {
 
     if (!isAuthenticated || !user) return null;
 
-    const pendingOrders = allOrders.filter(order => order.status === 'Pending' || order.status === 'Confirmed');
-    const completedOrders = allOrders.filter(order => order.status === 'Delivered');
+    // Filter orders based on search term (order ID or item names)
+    const normalizeText = (text) => text.toLowerCase().trim();
+    const filteredOrders = allOrders.filter(order => {
+        if (!searchTerm.trim()) return true; // Show all orders if search is empty
+        const normalizedSearch = normalizeText(searchTerm);
+        // Check order ID
+        if (normalizeText(order.id).includes(normalizedSearch)) return true;
+        // Check item names
+        return order.items.some(item => normalizeText(item.name).includes(normalizedSearch));
+    });
+
+    const pendingOrders = filteredOrders.filter(order => order.status === 'Pending' || order.status === 'Confirmed');
+    const completedOrders = filteredOrders.filter(order => order.status === 'Delivered');
 
     const loadMoreCompletedOrders = () => {
         setVisibleCompletedOrders(prev => prev + 2);
@@ -120,6 +132,18 @@ const Dashboard = () => {
             <main className="flex-1 p-4">
                 <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
                     <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+
+                    {/* Search Bar for Orders */}
+                    <div className="mb-6">
+                        <input
+                            type="text"
+                            placeholder="Search by order number or item..."
+                            className="w-full p-3 pl-4 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            aria-label="Search orders by order number or item"
+                        />
+                    </div>
 
                     {/* Tabs for Orders */}
                     <div className="mb-6">
