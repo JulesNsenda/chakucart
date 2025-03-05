@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useToast } from '../context/ToastContext';
 
 // Loading skeleton component
 const ProductSkeleton = () => (
@@ -25,6 +26,7 @@ const ProductPreview = () => {
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const product = allProducts.find(p => p.id === parseInt(id));
+    const { showToast } = useToast();
 
     if (!product) {
         return (
@@ -79,7 +81,7 @@ const ProductPreview = () => {
     const handleAddToCart = () => {
         if (product.available && product.quantity > 0) {
             addToCart(product);
-            // No toast notification (silent as per previous request)
+            showToast(`${product.name} added to cart!`);
         }
     };
 

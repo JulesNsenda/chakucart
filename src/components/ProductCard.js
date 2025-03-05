@@ -1,14 +1,17 @@
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
+import { useToast } from '../context/ToastContext';
 
 const ProductCard = ({ product }) => {
     const { addToCart } = useContext(ProductContext);
+    const { showToast } = useToast();
+
 
     const handleAddToCart = () => {
         if (product.available && product.quantity > 0) {
             addToCart(product);
-            // Removed showToast(`${product.name} added to cart!`)
+            showToast(`${product.name} added to cart!`);
         }
     };
 
