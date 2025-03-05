@@ -4,6 +4,7 @@ import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import CustomDialog from '../components/CustomDialog'; // Import the custom dialog
 
 const Cart = () => {
     const { cart, removeFromCart, updateCartQuantity, clearCart, savedForLater, saveForLater, removeFromSaved, moveToCart } = useContext(ProductContext);
@@ -12,6 +13,9 @@ const Cart = () => {
     const [location, setLocation] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town, South Africa (warehouse location)
     const [distance, setDistance] = useState(0); // Distance in kilometers
     const [clientLocation, setClientLocation] = useState(null); // Client's location, initially null
+    const [showRemoveDialog, setShowRemoveDialog] = useState(false); // State for remove confirmation
+    const [showClearDialog, setShowClearDialog] = useState(false); // State for clear confirmation
+    const [itemToRemove, setItemToRemove] = useState(null); // Store item to remove
 
     // Mock function to calculate distance between two points (Haversine formula)
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -77,15 +81,31 @@ const Cart = () => {
     const itemCount = cart.reduce((sum, item) => sum + (item.cartQuantity || 1), 0);
 
     const handleRemove = (productId) => {
-        if (window.confirm('Are you sure you want to remove this item from your cart?')) {
-            removeFromCart(productId);
-        }
+        setItemToRemove(productId); // Set the item to remove
+        setShowRemoveDialog(true); // Show the custom dialog
     };
 
     const handleClear = () => {
-        if (window.confirm('Are you sure you want to clear your cart?')) {
-            clearCart();
+        setShowClearDialog(true); // Show the custom dialog for clearing cart
+    };
+
+    const confirmRemove = () => {
+        if (itemToRemove) {
+            removeFromCart(itemToRemove);
+            setShowRemoveDialog(false);
+            setItemToRemove(null);
         }
+    };
+
+    const confirmClear = () => {
+        clearCart();
+        setShowClearDialog(false);
+    };
+
+    const cancelAction = () => {
+        setShowRemoveDialog(false);
+        setShowClearDialog(false);
+        setItemToRemove(null);
     };
 
     const handleQuantityChange = (productId, e) => {
@@ -258,6 +278,20 @@ const Cart = () => {
                         </button>
                     </div>
                 </div>
+                {/* Custom Dialog for Removing Items */}
+                <CustomDialog
+                    isOpen={showRemoveDialog}
+                    onConfirm={confirmRemove}
+                    onCancel={cancelAction}
+                    message="Are you sure you want to remove this item from your cart?"
+                />
+                {/* Custom Dialog for Clearing Cart */}
+                <CustomDialog
+                    isOpen={showClearDialog}
+                    onConfirm={confirmClear}
+                    onCancel={cancelAction}
+                    message="Are you sure you want to clear your cart?"
+                />
             </main>
             <Footer />
         </div>
