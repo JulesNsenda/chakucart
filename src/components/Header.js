@@ -96,9 +96,6 @@ const Header = () => {
                                             <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md transition-all duration-300" onClick={() => handleMenuItemClick('/dashboard')}>
                                                 Dashboard
                                             </Link>
-                                            <Link to="/order-tracking" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md transition-all duration-300" onClick={() => handleMenuItemClick('/order-tracking')}>
-                                                Order Tracking
-                                            </Link>
                                             <Link to="/account-settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md transition-all duration-300" onClick={() => handleMenuItemClick('/account-settings')}>
                                                 Account Settings
                                             </Link>

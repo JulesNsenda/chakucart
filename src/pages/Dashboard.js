@@ -1,44 +1,98 @@
-// src/pages/Dashboard.js
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import axios from 'axios';
 
 const Dashboard = () => {
-    const { cart, savedForLater } = useContext(ProductContext);
-    const { user, isAuthenticated, hasRequiredDetails } = useAuth();
+    const { cart } = useContext(ProductContext);
+    const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
+    const { showToast } = useToast();
     const navigate = useNavigate();
-    const [ongoingOrders, setOngoingOrders] = useState([]); // Simulated ongoing orders (updated in real-time)
+    const [ongoingOrders, setOngoingOrders] = useState([]);
+    const [allOrders, setAllOrders] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Update ongoing orders whenever the cart changes
     useEffect(() => {
-        // Simulate fetching ongoing orders (replace with real API call in production)
+        if (!isAuthenticated || !user) {
+            navigate('/sign-in');
+            return;
+        }
+        fetchOrdersFromLocalStorage();
+    }, [isAuthenticated, navigate]);
+
+    useEffect(() => {
         if (cart.length > 0) {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.cartQuantity || 1)), 0).toFixed(2);
-            const tax = (parseFloat(subtotal) * 0.15).toFixed(2); // 15% tax
-            const shipping = 50.00; // Fixed delivery fee of R50 (adjust as needed, or use dynamic distance-based fee like in Cart)
-            const total = (parseFloat(subtotal) + parseFloat(tax) + parseFloat(shipping)).toFixed(2);
+            const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0).toFixed(2);
+            const tax = (parseFloat(subtotal) * 0.15).toFixed(2);
+            const shipping = 50.00;
+            const total = (parseFloat(subtotal) + parseFloat(tax) + shipping).toFixed(2);
 
             setOngoingOrders([{
-                id: 1,
+                id: `ORD-${Date.now()}`,
                 items: cart,
-                subtotal: subtotal,
-                tax: tax,
-                shipping: shipping,
-                total: total,
-                status: 'Pending'
+                subtotal,
+                tax,
+                shipping,
+                total,
+                status: 'Pending Checkout'
             }]);
         } else {
             setOngoingOrders([]);
         }
-    }, [cart]); // Re-run this effect whenever cart changes
+    }, [cart]);
 
-    if (!isAuthenticated || !user) {
-        navigate('/sign-in'); // Redirect to sign-in if not authenticated
-        return null;
-    }
+    const fetchOrdersFromLocalStorage = () => {
+        const orders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
+        const userOrders = orders.filter(order => order.email === user.email);
+        console.log('Fetched orders for user:', userOrders);
+        setAllOrders(userOrders);
+    };
+
+    const handleDeliveryConfirmation = useCallback(async (orderId, reference, paymentMethod) => {
+        try {
+            setIsLoading(true);
+            if (paymentMethod === 'Pay on Delivery') {
+                if (!authorizationCode) {
+                    showToast('No authorization code found. Please link your card.', 'warning', {
+                        onClose: () => navigate('/account-settings'),
+                    });
+                    return;
+                }
+                const chargeResponse = await axios.post(
+                    'http://localhost:5000/api/confirm-delivery',
+                    {
+                        orderId,
+                        email: user.email,
+                        authorizationCode,
+                        reference,
+                    }
+                );
+                if (chargeResponse.data.status !== 'success') {
+                    throw new Error(chargeResponse.data.message || 'Failed to confirm delivery.');
+                }
+            }
+            // For Pay Now, just update status locally since payment is already complete
+            const updatedOrders = allOrders.map(order =>
+                order.id === orderId ? { ...order, status: 'Delivered' } : order
+            );
+            localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
+            setAllOrders(updatedOrders);
+            showToast('Delivery confirmed!', 'success');
+        } catch (error) {
+            showToast(`Failed to confirm delivery: ${error.message || 'Unknown error'}`, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user.email, authorizationCode, navigate, showToast, allOrders]);
+
+    if (!isAuthenticated || !user) return null;
+
+    const pendingOrders = allOrders.filter(order => order.status === 'Pending' || order.status === 'Confirmed');
+    const completedOrders = allOrders.filter(order => order.status === 'Delivered');
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
@@ -46,18 +100,19 @@ const Dashboard = () => {
             <main className="flex-1 p-4">
                 <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
                     <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+
                     {/* Ongoing Orders */}
                     <section className="mb-8">
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">Ongoing Orders</h2>
                         {ongoingOrders.length > 0 ? (
                             <div className="space-y-4">
                                 {ongoingOrders.map((order) => (
-                                    <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg">
+                                    <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md">
                                         <p className="text-gray-700 font-medium">Order #{order.id}</p>
                                         <p className="text-gray-600">Items: {order.items.length}</p>
-                                        <p className="text-gray-600">Subtotal: <span className="text-gray-800 font-medium">R{order.subtotal}</span></p>
-                                        <p className="text-gray-600">Tax (15%): <span className="text-gray-800 font-medium">R{order.tax}</span></p>
-                                        <p className="text-gray-600">Delivery Fee: <span className="text-gray-800 font-medium">R{order.shipping}</span></p>
+                                        <p className="text-gray-600">Subtotal: R{order.subtotal}</p>
+                                        <p className="text-gray-600">Tax (15%): R{order.tax}</p>
+                                        <p className="text-gray-600">Delivery Fee: R{order.shipping}</p>
                                         <p className="text-gray-600">Total: <span className="text-blue-600 font-bold">R{order.total}</span></p>
                                         <p className="text-gray-600">Status: {order.status}</p>
                                     </div>
@@ -66,8 +121,65 @@ const Dashboard = () => {
                         ) : (
                             <p className="text-gray-500 font-medium">No ongoing orders at the moment.</p>
                         )}
+                        {hasRequiredDetails && ongoingOrders.length > 0 && (
+                            <button
+                                onClick={() => navigate('/payment')}
+                                className="mt-4 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300"
+                            >
+                                Proceed to Payment
+                            </button>
+                        )}
                     </section>
-                    {/* Check for Required Details and Payment Option */}
+
+                    {/* Pending Deliveries */}
+                    <section className="mb-8">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Pending Deliveries</h2>
+                        {isLoading ? (
+                            <p className="text-gray-600">Loading pending orders...</p>
+                        ) : pendingOrders.length === 0 ? (
+                            <p className="text-gray-500 font-medium">No pending deliveries found.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {pendingOrders.map((order) => (
+                                    <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md">
+                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                        <p className="text-gray-600">Total: R{order.total}</p>
+                                        <p className="text-gray-600">Status: {order.status}</p>
+                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                        <p className="text-gray-600">Paystack Reference: {order.paystackReference}</p>
+                                        <button
+                                            onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
+                                            className={`mt-2 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                                            disabled={isLoading}
+                                        >
+                                            {isLoading ? 'Processing...' : 'Confirm Delivery'}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Completed Orders */}
+                    <section className="mb-8">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Completed Orders</h2>
+                        {completedOrders.length === 0 ? (
+                            <p className="text-gray-500 font-medium">No completed orders yet.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {completedOrders.map((order) => (
+                                    <div key={order.id} className="p-4 bg-gray-200 rounded-lg shadow-md">
+                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                        <p className="text-gray-600">Total: R{order.total}</p>
+                                        <p className="text-gray-600">Status: {order.status}</p>
+                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Required Details Warning */}
                     {!hasRequiredDetails && (
                         <div className="mt-6 p-4 bg-yellow-100 rounded-lg shadow-md">
                             <p className="text-yellow-800 font-medium">
@@ -77,15 +189,6 @@ const Dashboard = () => {
                                 </Link>
                             </p>
                         </div>
-                    )}
-                    {hasRequiredDetails && ongoingOrders.length > 0 && (
-                        <button
-                            onClick={() => navigate('/payment')}
-                            className="mt-6 px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 shadow-md hover:shadow-lg"
-                            aria-label="Proceed to payment"
-                        >
-                            Proceed to Payment
-                        </button>
                     )}
                 </div>
             </main>

@@ -24,18 +24,25 @@ const Payment = () => {
     }, [isAuthenticated, cart, navigate]);
 
     const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
-    const tax = subtotal * 0.15; // 15% tax
-    const shipping = 5 * 10; // 5km at R10/km
+    const tax = subtotal * 0.15;
+    const shipping = 5 * 10;
     const total = subtotal + tax + shipping;
     const totalInKobo = Math.round(total * 100);
+
+    const saveOrderToLocalStorage = (order) => {
+        const existingOrders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
+        const updatedOrders = [...existingOrders, order];
+        localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
+        console.log('Saved to localStorage:', updatedOrders);
+    };
 
     const handlePaystackPayment = async () => {
         setIsLoading(true);
         try {
             const response = await axios.post('http://localhost:5000/api/initialize-transaction', {
                 email: user.email,
-                subtotal: subtotal + tax, // Cart value (products + tax)
-                shipping: shipping,
+                subtotal: subtotal + tax,
+                shipping,
                 cart,
             });
 
@@ -46,7 +53,7 @@ const Payment = () => {
                 amount: totalInKobo,
                 currency: 'ZAR',
                 ref: reference,
-                callback: (response) => verifyPayment(response.reference),
+                callback: (response) => verifyPayment(response.reference, 'Pay Now'),
                 onClose: () => setIsLoading(false),
             });
             handler.openIframe();
@@ -56,16 +63,29 @@ const Payment = () => {
         }
     };
 
-    const verifyPayment = async (reference) => {
+    const verifyPayment = async (reference, paymentMethod) => {
         try {
             const response = await axios.post('http://localhost:5000/api/verify-transaction', {
                 reference,
-                cart,
-                total: total.toFixed(2),
+                email: user.email,
             });
             if (response.data.status === 'success') {
+                const order = {
+                    id: `ORD-${Date.now()}`,
+                    items: [...cart],
+                    total: total.toFixed(2),
+                    status: 'Confirmed', // Initial status for Pay Now
+                    paymentMethod,
+                    createdAt: new Date().toISOString(),
+                    paystackReference: reference,
+                    subtotal,
+                    shipping,
+                    email: user.email,
+                };
+                saveOrderToLocalStorage(order);
                 clearCart();
-                navigate('/order-confirmation', { state: { order: response.data.order } });
+                setTimeout(() => navigate('/order-confirmation'), 100);
+                showToast(`Order placed successfully via ${paymentMethod}!`, 'success');
             } else {
                 showToast('Payment verification failed.', 'error');
             }
@@ -80,19 +100,18 @@ const Payment = () => {
         setIsLoading(true);
         try {
             if (!isCardLinked) {
-                showToast('To use Pay on Delivery, you need to link or verify your card. Redirecting to account settings...', {
+                showToast('Please link your card for Pay on Delivery.', 'warning', {
                     onClose: () => navigate('/account-settings'),
-                }, 'warning');
+                });
                 setIsLoading(false);
                 return;
             }
-
             if (!authorizationCode) {
-                showToast('No authorization code found. Please link your card first.', {
+                showToast('No authorization code found. Please link your card.', 'warning', {
                     onClose: () => navigate('/account-settings'),
-                }, 'warning');
-
-                throw new Error('No authorization code found. Please link your card first.');
+                });
+                setIsLoading(false);
+                return;
             }
 
             const response = await axios.post('http://localhost:5000/api/pay-on-delivery', {
@@ -102,13 +121,20 @@ const Payment = () => {
                 authorizationCode,
             });
             if (response.data.status === 'success') {
+                const order = {
+                    ...response.data.order,
+                    paymentMethod: 'Pay on Delivery',
+                    items: [...cart],
+                    subtotal,
+                    shipping,
+                    email: user.email,
+                };
+                saveOrderToLocalStorage(order);
                 clearCart();
-                const codReference = response.data.reference; // Use the Paystack reference from the response
-                updateUserDetails({ codReference });
-                navigate('/order-tracking', { state: { orderId: response.data.reference } });
-                showToast(`Pay on Delivery order placed for R${total.toFixed(2)}. Track your delivery to confirm receipt.`, 'success');
+                updateUserDetails({ codReference: response.data.reference });
+                setTimeout(() => navigate('/order-confirmation'), 100);
+                showToast(`Pay on Delivery order placed for R${total.toFixed(2)}.`, 'success');
             } else {
-                showToast('Payment failed', 'error');
                 throw new Error(response.data.message || 'Payment failed');
             }
         } catch (error) {
