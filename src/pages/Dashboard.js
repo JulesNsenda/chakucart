@@ -15,8 +15,8 @@ const Dashboard = () => {
     const [ongoingOrders, setOngoingOrders] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState('ongoing'); // Default to 'ongoing' orders
-    const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(5); // Show 5 completed orders initially
+    const [activeTab, setActiveTab] = useState('ongoing');
+    const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(3); 
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -111,7 +111,7 @@ const Dashboard = () => {
     const completedOrders = allOrders.filter(order => order.status === 'Delivered');
 
     const loadMoreCompletedOrders = () => {
-        setVisibleCompletedOrders(prev => prev + 5);
+        setVisibleCompletedOrders(prev => prev + 3); 
     };
 
     return (
@@ -145,7 +145,7 @@ const Dashboard = () => {
                         </nav>
                     </div>
 
-                    {/* Order Content (Tabbed/Accordion) */}
+                    {/* Order Content (Tabbed) */}
                     {activeTab === 'ongoing' && (
                         <section className="mb-8">
                             <h2 className="sr-only">Ongoing Orders</h2>
@@ -234,7 +234,7 @@ const Dashboard = () => {
                                     {visibleCompletedOrders < completedOrders.length && (
                                         <button
                                             onClick={loadMoreCompletedOrders}
-                                            className="mt-4 px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-all duration-200"
+                                            className="mt-4 px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                                         >
                                             Load More
                                         </button>
