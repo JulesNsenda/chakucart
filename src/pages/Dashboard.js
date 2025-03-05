@@ -8,7 +8,7 @@ import Footer from '../components/Footer';
 import axios from 'axios';
 
 const Dashboard = () => {
-    const { cart } = useContext(ProductContext);
+    const { cart, setCartItems } = useContext(ProductContext); // Updated to use setCartItems
     const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
@@ -75,7 +75,6 @@ const Dashboard = () => {
                     throw new Error(chargeResponse.data.message || 'Failed to confirm delivery.');
                 }
             }
-            // For Pay Now, just update status locally since payment is already complete
             const updatedOrders = allOrders.map(order =>
                 order.id === orderId ? { ...order, status: 'Delivered' } : order
             );
@@ -88,6 +87,21 @@ const Dashboard = () => {
             setIsLoading(false);
         }
     }, [user.email, authorizationCode, navigate, showToast, allOrders]);
+
+    const handleReplaceOrder = (order) => {
+        const newOrder = {
+            ...order,
+            id: `ORD-${Date.now()}`,
+            status: 'Pending Checkout',
+            createdAt: new Date().toISOString(),
+            paystackReference: null,
+        };
+        const updatedOrders = [...allOrders, newOrder];
+        localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
+        setAllOrders(updatedOrders);
+        setCartItems(order.items.map(item => ({ ...item, cartQuantity: item.cartQuantity || 1 }))); // Recreate cart
+        showToast('Order replaced successfully! Proceed to payment.', 'success');
+    };
 
     if (!isAuthenticated || !user) return null;
 
@@ -146,7 +160,7 @@ const Dashboard = () => {
                                         <p className="text-gray-600">Total: R{order.total}</p>
                                         <p className="text-gray-600">Status: {order.status}</p>
                                         <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                        <p className="text-gray-600">Paystack Reference: {order.paystackReference}</p>
+                                        <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
                                         <button
                                             onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
                                             className={`mt-2 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
@@ -173,6 +187,12 @@ const Dashboard = () => {
                                         <p className="text-gray-600">Total: R{order.total}</p>
                                         <p className="text-gray-600">Status: {order.status}</p>
                                         <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                        <button
+                                            onClick={() => handleReplaceOrder(order)}
+                                            className="mt-2 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300"
+                                        >
+                                            Replace Order
+                                        </button>
                                     </div>
                                 ))}
                             </div>
