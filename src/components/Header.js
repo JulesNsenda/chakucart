@@ -66,12 +66,6 @@ const Header = () => {
                         <Link to="/" className="text-gray-700 hover:text-green-600" aria-label="Home page">
                             Home
                         </Link>
-                        <Link to="/about" className="text-gray-700 hover:text-green-600" aria-label="About us page">
-                            About
-                        </Link>
-                        <Link to="/contact" className="text-gray-700 hover:text-green-600" aria-label="Contact page">
-                            Contact
-                        </Link>
                         <Link to="/cart" className="relative text-gray-700 hover:text-green-600" aria-label="Cart page">
                             Cart
                             {cart.length > 0 && (
