@@ -231,17 +231,6 @@ const AccountSettings = () => {
                         >
                             Back to Dashboard
                         </button>
-                        <span className="ml-4">
-                            <button
-                                onClick={() => {
-                                    setTimeout(() => navigate('/order-tracking'), 0); // Navigate to Order Tracking
-                                }}
-                                className="text-green-600 hover:text-green-700"
-                                aria-label="Track orders"
-                            >
-                                Track Orders
-                            </button>
-                        </span>
                     </p>
                 </div>
             </main>
