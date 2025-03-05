@@ -217,9 +217,10 @@ const Dashboard = () => {
                                                 {/* Order Summary (Left Column) */}
                                                 <div>
                                                     <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                                    <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                    <p className="text-gray-600">Payment Method: {order.paymentMethod}</p>
                                                     <p className="text-gray-600">Total: R{order.total}</p>
                                                     <p className="text-gray-600">Status: {order.status}</p>
-                                                    <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
                                                     <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
                                                 </div>
 
@@ -266,9 +267,11 @@ const Dashboard = () => {
                                                     {/* Order Summary (Left Column) */}
                                                     <div>
                                                         <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                        <p className="text-gray-600">Payment Method: {order.paymentMethod}</p>
+                                                        <p className="text-gray-600">Driver Cost: {order.shipping}</p>
                                                         <p className="text-gray-600">Total: R{order.total}</p>
                                                         <p className="text-gray-600">Status: {order.status}</p>
-                                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
                                                     </div>
 
                                                     {/* Order Items (Right Column) */}
