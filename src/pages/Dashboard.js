@@ -120,7 +120,9 @@ const Dashboard = () => {
     });
 
     const pendingOrders = filteredOrders.filter(order => order.status === 'Pending' || order.status === 'Confirmed');
-    const completedOrders = filteredOrders.filter(order => order.status === 'Delivered');
+    const completedOrders = filteredOrders
+        .filter(order => order.status === 'Delivered')
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const loadMoreCompletedOrders = () => {
         setVisibleCompletedOrders(prev => prev + 2);
