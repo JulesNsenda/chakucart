@@ -23,8 +23,8 @@ const ProductSkeleton = () => (
 // Helper function to normalize text for plural/singular matching
 const normalizeText = (text) => {
   let normalized = text.toLowerCase().trim();
-  if (normalized.endsWith('s')) normalized = normalized.slice(0, -1); // Remove 's'
-  if (normalized.endsWith('es')) normalized = normalized.slice(0, -2); // Remove 'es'
+  if (normalized.endsWith('s')) normalized = normalized.slice(0, -1);
+  if (normalized.endsWith('es')) normalized = normalized.slice(0, -2);
   return normalized;
 };
 
@@ -33,7 +33,7 @@ const Home = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
-  const [stockStatus, setStockStatus] = useState('all'); // New state for stock status
+  const [stockStatus, setStockStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
@@ -42,14 +42,18 @@ const Home = () => {
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
   const searchInputRef = useRef(null);
 
-  // Categories for filtering
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
   const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
+  const sortOptions = [
+    { value: 'none', label: 'Sort By' },
+    { value: 'price-asc', label: 'Price: Low to High' },
+    { value: 'price-desc', label: 'Price: High to Low' },
+    { value: 'name-asc', label: 'Name: A-Z' },
+    { value: 'name-desc', label: 'Name: Z-A' },
+  ];
 
-  // Memoize product names for autocomplete
   const productNames = useMemo(() => allProducts.map(p => p.name), [allProducts]);
 
-  // Handle search with loading state
   const handleSearch = (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -58,31 +62,28 @@ const Home = () => {
     } else {
       setSearchParams({});
     }
-    setTimeout(() => setIsLoading(false), 500); // Simulate network delay
+    setTimeout(() => setIsLoading(false), 500);
   };
 
-  // Handle autocomplete suggestions
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
     if (value) {
       const suggestions = productNames
         .filter(name => normalizeText(name).includes(normalizeText(value)))
-        .slice(0, 5); // Show top 5 suggestions
+        .slice(0, 5);
       setSearchSuggestions(suggestions);
     } else {
       setSearchSuggestions([]);
     }
   };
 
-  // Handle suggestion click
   const handleSuggestionClick = (suggestion) => {
     setSearchTerm(suggestion);
     setSearchSuggestions([]);
     setSearchParams({ q: suggestion });
   };
 
-  // Handle search, sort, filter, and stock status (ensure exactly 20 unique products)
   const [filteredProducts, setFilteredProducts] = useState(() => {
     const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
     if (uniqueProducts.length !== 20) {
@@ -96,10 +97,8 @@ const Home = () => {
     const searchQuery = searchParams.get('q') || '';
     let filtered = [...allProducts];
 
-    // Ensure uniqueness in filtered array
     filtered = Array.from(new Map(filtered.map(p => [p.id, p])).values());
 
-    // Apply search (case-insensitive, handling plural/singular)
     if (searchQuery) {
       const normalizedQuery = normalizeText(searchQuery);
       filtered = filtered.filter((product) => {
@@ -112,49 +111,41 @@ const Home = () => {
       });
     }
 
-    // Apply category filter
     if (category !== 'all') {
       filtered = filtered.filter((product) => product.category === category);
     }
 
-    // Apply stock status filter
     if (stockStatus === 'in-stock') {
       filtered = filtered.filter(product => product.available && product.quantity > 0);
     } else if (stockStatus === 'out-of-stock') {
       filtered = filtered.filter(product => !product.available || product.quantity === 0);
     }
 
-    // Apply sorting
     if (sortBy === 'price-asc') filtered.sort((a, b) => a.price - b.price);
     if (sortBy === 'price-desc') filtered.sort((a, b) => b.price - a.price);
     if (sortBy === 'name-asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
     if (sortBy === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
 
-    // Ensure final filtered list has no duplicates and limit to 20 if more
     const finalProducts = Array.from(new Map(filtered.map(p => [p.id, p])).values());
-    setFilteredProducts(finalProducts.slice(0, 20)); // Limit to exactly 20 unique products
-    setTimeout(() => setIsLoading(false), 500); // Simulate network delay
+    setFilteredProducts(finalProducts.slice(0, 20));
+    setTimeout(() => setIsLoading(false), 500);
   }, [allProducts, searchParams, sortBy, category, stockStatus]);
 
-  // Sync searchTerm with searchParams on mount or param changes
   useEffect(() => {
     const searchQuery = searchParams.get('q') || '';
     setSearchTerm(searchQuery);
   }, [searchParams]);
 
-  // Handle "Shop Now" button click to scroll to products
   const handleShopNow = () => {
     productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Handle items per page change
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
     setItemsPerPageOptions(newItemsPerPage);
-    paginate(1); // Reset to first page when changing items per page
+    paginate(1);
   };
 
-  // Pagination controls for filtered products
   const indexOfLastItem = currentPage * itemsPerPageOptions;
   const indexOfFirstItem = indexOfLastItem - itemsPerPageOptions;
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
@@ -166,96 +157,101 @@ const Home = () => {
       <main className="flex-1">
         <Hero onShopNow={handleShopNow} />
         <section className="container mx-auto px-4 py-12">
-          {/* Search, Sort, Filter, and Stock Status Section */}
-          <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              {/* Search Bar with Autocomplete */}
-              <form onSubmit={handleSearch} className="w-full md:w-1/2 relative">
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    placeholder="Search groceries..."
-                    className="w-full p-3 pl-4 pr-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400"
-                    value={searchTerm}
-                    onChange={handleInputChange}
-                    ref={searchInputRef}
-                    aria-label="Search groceries"
-                  />
-                  <button
-                    type="submit"
-                    className="p-2 bg-green-500 text-white rounded-r-md hover:bg-green-600 transition-colors ml-2"
-                  >
-                    {isLoading ? (
-                      <span className="loading loading-spinner loading-sm"></span>
-                    ) : (
-                      'Search'
-                    )}
-                  </button>
-                </div>
-                {searchSuggestions.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
-                    {searchSuggestions.map((suggestion, index) => (
-                      <li
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                      >
-                        {suggestion}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </form>
-
-              {/* Sort, Filter, and Stock Status Dropdowns */}
-              <div className="flex flex-col md:flex-row gap-4 w-full md:w-1/2">
-                {/* Sort */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-                  aria-label="Sort products"
-                >
-                  <option value="none">Sort By</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="name-asc">Name: A-Z</option>
-                  <option value="name-desc">Name: Z-A</option>
-                </select>
-
-                {/* Filter by Category */}
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-                  aria-label="Filter by category"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Filter by Stock Status */}
-                <select
-                  value={stockStatus}
-                  onChange={(e) => setStockStatus(e.target.value)}
-                  className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-                  aria-label="Filter by stock status"
-                >
-                  {stockStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
           <div ref={productsRef}>
             <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Our Products</h2>
+
+            {/* Search, Sort, Filter, and Stock Status Section */}
+            <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                {/* Search Bar with Autocomplete */}
+                <form onSubmit={handleSearch} className="w-full md:w-1/2 relative">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Search groceries..."
+                      className="w-full p-3 pl-4 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+                      value={searchTerm}
+                      onChange={handleInputChange}
+                      ref={searchInputRef}
+                      aria-label="Search groceries"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                      aria-label="Search"
+                    >
+                      {isLoading ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {searchSuggestions.length > 0 && (
+                    <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
+                      {searchSuggestions.map((suggestion, index) => (
+                        <li
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="p-2 hover:bg-gray-100"
+                        >
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </form>
+
+                {/* Sort, Filter, and Stock Status Dropdowns */}
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-1/2">
+                  {/* Sort */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
+                    aria-label="Sort products"
+                  >
+                    {sortOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Filter by Category */}
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
+                    aria-label="Filter by category"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Filter by Stock Status */}
+                  <select
+                    value={stockStatus}
+                    onChange={(e) => setStockStatus(e.target.value)}
+                    className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
+                    aria-label="Filter by stock status"
+                  >
+                    {stockStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Products Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {isLoading ? (
                 Array.from({ length: 8 }).map((_, index) => (
@@ -266,22 +262,22 @@ const Home = () => {
                   <ProductCard key={product.id} product={product} />
                 ))
               ) : (
-                <p className="text-center text-gray-500">No products found.</p>
+                <p className="text-center text-gray-500 col-span-full">No products found.</p>
               )}
             </div>
+
             {/* Pagination and Items Per Page */}
             {!isLoading && currentProducts.length > 0 && (
               <div className="mt-12 flex flex-col md:flex-row justify-center items-center gap-6">
-                {/* Pagination */}
                 <div className="flex justify-center space-x-2">
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button
                       key={i + 1}
                       onClick={() => paginate(i + 1)}
                       className={`px-4 py-2 rounded-md font-medium ${currentPage === i + 1
-                          ? 'bg-green-500 text-white'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-                        } transition-colors`}
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                        }`}
                       aria-label={`Page ${i + 1}`}
                     >
                       {i + 1}
@@ -289,11 +285,10 @@ const Home = () => {
                   ))}
                 </div>
 
-                {/* Items Per Page Dropdown */}
                 <select
                   value={itemsPerPageOptions}
                   onChange={handleItemsPerPageChange}
-                  className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
                   aria-label="Items per page"
                 >
                   <option value={8}>8 Items</option>
@@ -336,7 +331,6 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, image
     'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
   ];
 
-  // Use existing products first, ensuring uniqueness
   existingProducts.forEach(product => {
     if (!seen.has(product.name) && uniqueProducts.length < 20) {
       uniqueProducts.push(product);
@@ -344,7 +338,6 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, image
     }
   });
 
-  // Fill remaining slots with new unique products using passed imageMap
   while (uniqueProducts.length < 20) {
     const name = groceryNames.find(n => !seen.has(n));
     if (name) {
@@ -367,17 +360,15 @@ function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, image
   return uniqueProducts;
 }
 
-// Function for specific units based on category
 function getUnitForCategory(name) {
   const lowerName = name.toLowerCase();
   if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
   if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
   if (lowerName.includes('bread')) return 'loaf';
   if (lowerName.includes('eggs')) return 'dozen';
-  return 'each'; // Default for others
+  return 'each';
 }
 
-// Function to determine product category
 function determineCategory(name) {
   const lowerName = name.toLowerCase();
   if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
@@ -386,7 +377,7 @@ function determineCategory(name) {
   if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
   if (lowerName.includes('bread')) return 'bread';
   if (lowerName.includes('juice')) return 'beverages';
-  return 'all'; // Default category
+  return 'all';
 }
 
 export default Home;
