@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import axios from 'axios';
+import CustomDialog from '../components/CustomDialog'; // Assuming you have this from previous updates
 
 const Dashboard = () => {
     const { cart, setCartItems } = useContext(ProductContext);
@@ -17,7 +18,11 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ongoing');
     const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(2);
+    const [visibleRefundedOrders, setVisibleRefundedOrders] = useState(2); // State for pagination of refunded orders
     const [searchTerm, setSearchTerm] = useState(''); // State for search input
+    const [showRefundDialog, setShowRefundDialog] = useState(false); // State for refund confirmation dialog
+    const [selectedOrder, setSelectedOrder] = useState(null); // Store the order to refund
+    const [refundReason, setRefundReason] = useState(''); // State for refund reason/comment
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -41,7 +46,11 @@ const Dashboard = () => {
                 tax,
                 shipping,
                 total,
-                status: 'Pending Checkout'
+                status: 'Pending Checkout',
+                paymentMethod: 'Pay Now', // Assuming default payment method for simplicity
+                createdAt: new Date().toISOString(),
+                paystackReference: null, // Removed simulated reference (will be set by server/Payment.js)
+                transactionId: null, // Will be set by Payment.js/server.js
             }]);
         } else {
             setOngoingOrders([]);
@@ -56,39 +65,34 @@ const Dashboard = () => {
     };
 
     const handleDeliveryConfirmation = useCallback(async (orderId, reference, paymentMethod) => {
-        try {
-            setIsLoading(true);
-            if (paymentMethod === 'Pay on Delivery') {
-                if (!authorizationCode) {
-                    showToast('No authorization code found. Please link your card.', 'warning', {
-                        onClose: () => navigate('/account-settings'),
-                    });
-                    return;
-                }
-                const chargeResponse = await axios.post(
-                    'http://localhost:5000/api/confirm-delivery',
-                    {
-                        orderId,
-                        email: user.email,
-                        authorizationCode,
-                        reference,
-                    }
-                );
-                if (chargeResponse.data.status !== 'success') {
-                    throw new Error(chargeResponse.data.message || 'Failed to confirm delivery.');
-                }
+        setIsLoading(true);
+        if (paymentMethod === 'Pay on Delivery') {
+            if (!authorizationCode) {
+                showToast('No authorization code found. Please link your card.', 'warning', {
+                    onClose: () => navigate('/account-settings'),
+                });
+                return;
             }
-            const updatedOrders = allOrders.map(order =>
-                order.id === orderId ? { ...order, status: 'Delivered' } : order
+            const chargeResponse = await axios.post(
+                'http://localhost:5000/api/confirm-delivery',
+                {
+                    orderId,
+                    email: user.email,
+                    authorizationCode,
+                    reference,
+                }
             );
-            localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
-            setAllOrders(updatedOrders);
-            showToast('Delivery confirmed!', 'success');
-        } catch (error) {
-            showToast(`Failed to confirm delivery: ${error.message || 'Unknown error'}`, 'error');
-        } finally {
-            setIsLoading(false);
+            if (chargeResponse.data.status !== 'success') {
+                throw new Error(chargeResponse.data.message || 'Failed to confirm delivery.');
+            }
         }
+        const updatedOrders = allOrders.map(order =>
+            order.id === orderId ? { ...order, status: 'Delivered' } : order
+        );
+        localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
+        setAllOrders(updatedOrders);
+        showToast('Delivery confirmed!', 'success');
+        setIsLoading(false);
     }, [user.email, authorizationCode, navigate, showToast, allOrders]);
 
     const handleReplaceOrder = (order) => {
@@ -98,12 +102,88 @@ const Dashboard = () => {
             status: 'Pending Checkout',
             createdAt: new Date().toISOString(),
             paystackReference: null,
+            transactionId: null, // Will be set during payment
         };
         const updatedOrders = [...allOrders, newOrder];
         localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
         setAllOrders(updatedOrders);
         setCartItems(order.items.map(item => ({ ...item, cartQuantity: item.cartQuantity || 1 })));
         showToast('Order replaced successfully! Proceed to payment.', 'success');
+    };
+
+    const handleRefundRequest = async () => {
+        if (!refundReason.trim()) {
+            showToast('Please provide a reason for the refund.', 'error');
+            return;
+        }
+
+        setIsLoading(true);
+        const order = selectedOrder;
+
+        if (order.paymentMethod === 'Pay Now' && order.transactionId) {
+            const amount = Math.round(parseFloat(order.total) * 100);
+            console.log('Dashboard Transaction ID: ', order.transactionId, 'amount: ', amount, 'reason: ', refundReason);
+
+            // Process refund via server endpoint (no Paystack call from client)
+            const refundResponse = await axios.post(
+                'http://localhost:5000/api/request-refund',
+                {
+                    transactionId: order.transactionId,
+                    amount: amount,
+                    reason: refundReason, // Include refund reason for logging/audit
+                }
+            );
+
+            console.log('Refund Response: ', refundResponse.data); // Debug the response
+            showToast('Request for Refund queued.', 'info');
+        } else if (order.paymentMethod === 'Pay on Delivery') {
+            // Simulate refund for "Pay on Delivery" by updating status and notifying admin (via server for consistency)
+            const podRefundResponse = await axios.post(
+                'http://localhost:5000/api/request-pod-refund',
+                {
+                    orderId: order.id,
+                    email: user.email,
+                    reason: refundReason,
+                }
+            );
+
+            if (podRefundResponse.data.status !== 'success') {
+                throw new Error(podRefundResponse.data.message || 'Failed to process Pay on Delivery refund.');
+            }
+            showToast('Refund for Pay on Delivery orders requires manual processing. Admin notified.', 'info');
+        }
+
+        // Update order status and store refund details in localStorage
+        const updatedOrders = allOrders.map(o =>
+            o.id === order.id
+                ? {
+                    ...o,
+                    status: 'Refunded',
+                    refundReason: refundReason,
+                    refundedAt: new Date().toISOString(),
+                    refundStatus: order.paymentMethod === 'Pay Now' ? 'Processed' : 'Pending Manual Review',
+                }
+                : o
+        );
+        localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
+        setAllOrders(updatedOrders);
+        setActiveTab('refunds'); // Switch to Refunds tab automatically
+        showToast('Refund requested successfully!', 'success');
+        setShowRefundDialog(false); // Close the refund dialog
+        setSelectedOrder(null);
+        setRefundReason('');
+        setIsLoading(false);
+    };
+
+    const openRefundDialog = (order) => {
+        setSelectedOrder(order);
+        setShowRefundDialog(true);
+    };
+
+    const closeRefundDialog = () => {
+        setShowRefundDialog(false);
+        setSelectedOrder(null);
+        setRefundReason('');
     };
 
     if (!isAuthenticated || !user) return null;
@@ -122,10 +202,17 @@ const Dashboard = () => {
     const pendingOrders = filteredOrders.filter(order => order.status === 'Pending' || order.status === 'Confirmed');
     const completedOrders = filteredOrders
         .filter(order => order.status === 'Delivered')
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort from latest to oldest
+    const refundedOrders = filteredOrders
+        .filter(order => order.status === 'Refunded')
+        .sort((a, b) => new Date(b.refundedAt) - new Date(a.refundedAt)); // Sort refunds from latest to oldest
 
     const loadMoreCompletedOrders = () => {
         setVisibleCompletedOrders(prev => prev + 2);
+    };
+
+    const loadMoreRefundedOrders = () => {
+        setVisibleRefundedOrders(prev => prev + 2);
     };
 
     return (
@@ -168,6 +255,12 @@ const Dashboard = () => {
                             >
                                 Completed Orders
                             </button>
+                            <button
+                                onClick={() => setActiveTab('refunds')}
+                                className={`px-4 py-2 font-medium ${activeTab === 'refunds' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+                            >
+                                Refunds
+                            </button>
                         </nav>
                     </div>
 
@@ -186,6 +279,8 @@ const Dashboard = () => {
                                             <p className="text-gray-600">Delivery Fee: R{order.shipping}</p>
                                             <p className="text-gray-600">Total: <span className="text-blue-600 font-bold">R{order.total}</span></p>
                                             <p className="text-gray-600">Status: {order.status}</p>
+                                            <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
+                                            <p className="text-gray-600">Transaction ID: {order.transactionId || 'N/A'}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -224,6 +319,7 @@ const Dashboard = () => {
                                                     <p className="text-gray-600">Total: R{order.total}</p>
                                                     <p className="text-gray-600">Status: {order.status}</p>
                                                     <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
+                                                    <p className="text-gray-600">Transaction ID: {order.transactionId || 'N/A'}</p>
                                                 </div>
 
                                                 {/* Order Items (Right Column) */}
@@ -274,6 +370,13 @@ const Dashboard = () => {
                                                         <p className="text-gray-600">Driver Cost: {order.shipping}</p>
                                                         <p className="text-gray-600">Total: R{order.total}</p>
                                                         <p className="text-gray-600">Status: {order.status}</p>
+                                                        {order.refundReason && (
+                                                            <p className="text-gray-600">Refund Reason: {order.refundReason}</p>
+                                                        )}
+                                                        {order.refundStatus && (
+                                                            <p className="text-gray-600">Refund Status: {order.refundStatus}</p>
+                                                        )}
+                                                        <p className="text-gray-600">Transaction ID: {order.transactionId || 'N/A'}</p>
                                                     </div>
 
                                                     {/* Order Items (Right Column) */}
@@ -291,18 +394,85 @@ const Dashboard = () => {
                                                     </div>
                                                 </div>
 
-                                                <button
-                                                    onClick={() => handleReplaceOrder(order)}
-                                                    className="mt-4 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200"
-                                                >
-                                                    Replace Order
-                                                </button>
+                                                <div className="mt-4 flex gap-4">
+                                                    <button
+                                                        onClick={() => handleReplaceOrder(order)}
+                                                        className="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200"
+                                                    >
+                                                        Replace Order
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openRefundDialog(order)}
+                                                        className="py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200"
+                                                        disabled={order.status === 'Refunded'}
+                                                    >
+                                                        {order.status === 'Refunded' ? 'Refunded' : 'Request Refund'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                     {visibleCompletedOrders < completedOrders.length && (
                                         <button
                                             onClick={loadMoreCompletedOrders}
+                                            className="mt-4 px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                                        >
+                                            Load More
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                        </section>
+                    )}
+
+                    {activeTab === 'refunds' && (
+                        <section className="mb-8">
+                            <h2 className="sr-only">Refunds</h2>
+                            {refundedOrders.length === 0 ? (
+                                <p className="text-gray-500 font-medium">No refunds yet.</p>
+                            ) : (
+                                <>
+                                    <div className="space-y-4">
+                                        {refundedOrders.slice(0, visibleRefundedOrders).map((order) => (
+                                            <div key={order.id} className="p-4 bg-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {/* Refund Summary (Left Column) */}
+                                                    <div>
+                                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                        <p className="text-gray-600">Payment Method: {order.paymentMethod}</p>
+                                                        <p className="text-gray-600">Total: R{order.total}</p>
+                                                        <p className="text-gray-600">Status: {order.status}</p>
+                                                        {order.refundReason && (
+                                                            <p className="text-gray-600">Refund Reason: {order.refundReason}</p>
+                                                        )}
+                                                        {order.refundStatus && (
+                                                            <p className="text-gray-600">Refund Status: {order.refundStatus}</p>
+                                                        )}
+                                                        <p className="text-gray-600">Refunded At: {new Date(order.refundedAt).toLocaleString()}</p>
+                                                        <p className="text-gray-600">Transaction ID: {order.transactionId || 'N/A'}</p>
+                                                    </div>
+
+                                                    {/* Order Items (Right Column) */}
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Order Items</h3>
+                                                        <div className="space-y-2">
+                                                            {order.items.map((item) => (
+                                                                <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200">
+                                                                    <span className="text-gray-700">{item.name}</span>
+                                                                    <span className="text-gray-600">Qty: {item.cartQuantity || 1}</span>
+                                                                    <span className="text-gray-800 font-medium">R{(item.price * (item.cartQuantity || 1)).toFixed(2)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {visibleRefundedOrders < refundedOrders.length && (
+                                        <button
+                                            onClick={loadMoreRefundedOrders}
                                             className="mt-4 px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                                         >
                                             Load More
@@ -324,6 +494,26 @@ const Dashboard = () => {
                             </p>
                         </div>
                     )}
+
+                    {/* Refund Confirmation Dialog */}
+                    <CustomDialog
+                        isOpen={showRefundDialog}
+                        onConfirm={handleRefundRequest}
+                        onCancel={closeRefundDialog}
+                        message={
+                            <div>
+                                <p className="text-gray-600 mb-4">Are you sure you want to request a refund for Order #{selectedOrder?.id}?</p>
+                                <textarea
+                                    value={refundReason}
+                                    onChange={(e) => setRefundReason(e.target.value)}
+                                    placeholder="Enter reason for refund (required)"
+                                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows="3"
+                                    required
+                                />
+                            </div>
+                        }
+                    />
                 </div>
             </main>
             <Footer />

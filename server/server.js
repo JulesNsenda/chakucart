@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -86,7 +85,13 @@ app.post('/api/initialize-transaction', async (req, res) => {
             { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
         );
 
-        res.json({ status: 'success', data: response.data.data });
+        res.json({
+            status: 'success', data: {
+                reference: response.data.data.reference, // Paystack reference
+                transactionId: response.data.data.id, // Paystack transaction ID (id)
+                ...response.data.data // Include full Paystack response data
+            }
+        });
     } catch (error) {
         console.error(error.response?.data || error.message);
         res.status(500).json({ status: 'error', message: 'Payment failed' });
@@ -307,6 +312,44 @@ app.get('/api/pending-orders', async (req, res) => {
     const { email } = req.query;
     const userOrders = pendingOrders.filter(order => order.email === email && order.status === 'Pending');
     res.json({ orders: userOrders });
+});
+
+// Process refund for Pay Now (server-side only)
+app.post('/api/request-refund', async (req, res) => {
+    console.log('Received refund request:', req.body); // Debug the incoming request
+    const { transactionId, amount, reason } = req.body; // Use 'transactionId' to match client request
+
+    console.log('Transaction ID: ', transactionId, 'Amount: ', amount, 'Reason: ', reason);
+
+    // Process refund via Paystack
+    const refundResponse = await axios.post(
+        'https://api.paystack.co/refund',
+        {
+            transaction: transactionId, // Use transaction ID as per Paystack docs
+            amount: amount, // Amount in kobo (must be an integer)
+            reason: reason || 'No reason provided', // Default to a fallback reason if not provided
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+        }
+    );
+
+    console.log('Paystack Refund Response:', refundResponse.data); // Debug the refund response
+    res.json({ status: 'success', message: 'Refund processed successfully.', data: refundResponse.data });
+});
+
+// Process refund for Pay on Delivery (simulated, server-side only)
+app.post('/api/request-pod-refund', async (req, res) => {
+    const { orderId, email, reason } = req.body;
+
+    // Simulate manual processing for Pay on Delivery refunds (no Paystack call needed for MVP)
+    console.log(`Simulating refund for Pay on Delivery order ${orderId} for ${email} with reason: ${reason}`);
+
+    // In production, you might notify an admin via email/SMS or update a database
+    res.json({ status: 'success', message: 'Pay on Delivery refund processing initiated. Admin notified for manual review.', data: { orderId, email, reason } });
 });
 
 app.listen(PORT, () => {
