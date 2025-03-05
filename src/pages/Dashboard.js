@@ -8,13 +8,15 @@ import Footer from '../components/Footer';
 import axios from 'axios';
 
 const Dashboard = () => {
-    const { cart, setCartItems } = useContext(ProductContext); // Updated to use setCartItems
+    const { cart, setCartItems } = useContext(ProductContext);
     const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
     const [ongoingOrders, setOngoingOrders] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('ongoing'); // Default to 'ongoing' orders
+    const [visibleCompletedOrders, setVisibleCompletedOrders] = useState(5); // Show 5 completed orders initially
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -99,7 +101,7 @@ const Dashboard = () => {
         const updatedOrders = [...allOrders, newOrder];
         localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
         setAllOrders(updatedOrders);
-        setCartItems(order.items.map(item => ({ ...item, cartQuantity: item.cartQuantity || 1 }))); // Recreate cart
+        setCartItems(order.items.map(item => ({ ...item, cartQuantity: item.cartQuantity || 1 })));
         showToast('Order replaced successfully! Proceed to payment.', 'success');
     };
 
@@ -108,6 +110,10 @@ const Dashboard = () => {
     const pendingOrders = allOrders.filter(order => order.status === 'Pending' || order.status === 'Confirmed');
     const completedOrders = allOrders.filter(order => order.status === 'Delivered');
 
+    const loadMoreCompletedOrders = () => {
+        setVisibleCompletedOrders(prev => prev + 5);
+    };
+
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
@@ -115,89 +121,128 @@ const Dashboard = () => {
                 <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
                     <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
 
-                    {/* Ongoing Orders */}
-                    <section className="mb-8">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Ongoing Orders</h2>
-                        {ongoingOrders.length > 0 ? (
-                            <div className="space-y-4">
-                                {ongoingOrders.map((order) => (
-                                    <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md">
-                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
-                                        <p className="text-gray-600">Items: {order.items.length}</p>
-                                        <p className="text-gray-600">Subtotal: R{order.subtotal}</p>
-                                        <p className="text-gray-600">Tax (15%): R{order.tax}</p>
-                                        <p className="text-gray-600">Delivery Fee: R{order.shipping}</p>
-                                        <p className="text-gray-600">Total: <span className="text-blue-600 font-bold">R{order.total}</span></p>
-                                        <p className="text-gray-600">Status: {order.status}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-gray-500 font-medium">No ongoing orders at the moment.</p>
-                        )}
-                        {hasRequiredDetails && ongoingOrders.length > 0 && (
+                    {/* Tabs for Orders */}
+                    <div className="mb-6">
+                        <nav className="flex border-b border-gray-200">
                             <button
-                                onClick={() => navigate('/payment')}
-                                className="mt-4 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300"
+                                onClick={() => setActiveTab('ongoing')}
+                                className={`px-4 py-2 font-medium ${activeTab === 'ongoing' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
                             >
-                                Proceed to Payment
+                                Ongoing Orders
                             </button>
-                        )}
-                    </section>
+                            <button
+                                onClick={() => setActiveTab('pending')}
+                                className={`px-4 py-2 font-medium ${activeTab === 'pending' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+                            >
+                                Pending Deliveries
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('completed')}
+                                className={`px-4 py-2 font-medium ${activeTab === 'completed' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+                            >
+                                Completed Orders
+                            </button>
+                        </nav>
+                    </div>
 
-                    {/* Pending Deliveries */}
-                    <section className="mb-8">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Pending Deliveries</h2>
-                        {isLoading ? (
-                            <p className="text-gray-600">Loading pending orders...</p>
-                        ) : pendingOrders.length === 0 ? (
-                            <p className="text-gray-500 font-medium">No pending deliveries found.</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {pendingOrders.map((order) => (
-                                    <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md">
-                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
-                                        <p className="text-gray-600">Total: R{order.total}</p>
-                                        <p className="text-gray-600">Status: {order.status}</p>
-                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                        <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
-                                        <button
-                                            onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
-                                            className={`mt-2 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
-                                            disabled={isLoading}
-                                        >
-                                            {isLoading ? 'Processing...' : 'Confirm Delivery'}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </section>
+                    {/* Order Content (Tabbed/Accordion) */}
+                    {activeTab === 'ongoing' && (
+                        <section className="mb-8">
+                            <h2 className="sr-only">Ongoing Orders</h2>
+                            {ongoingOrders.length > 0 ? (
+                                <div className="space-y-4">
+                                    {ongoingOrders.map((order) => (
+                                        <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                            <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                            <p className="text-gray-600">Items: {order.items.length}</p>
+                                            <p className="text-gray-600">Subtotal: R{order.subtotal}</p>
+                                            <p className="text-gray-600">Tax (15%): R{order.tax}</p>
+                                            <p className="text-gray-600">Delivery Fee: R{order.shipping}</p>
+                                            <p className="text-gray-600">Total: <span className="text-blue-600 font-bold">R{order.total}</span></p>
+                                            <p className="text-gray-600">Status: {order.status}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 font-medium">No ongoing orders at the moment.</p>
+                            )}
+                            {hasRequiredDetails && ongoingOrders.length > 0 && (
+                                <button
+                                    onClick={() => navigate('/payment')}
+                                    className="mt-4 px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200"
+                                    aria-label="Proceed to payment"
+                                >
+                                    Proceed to Payment
+                                </button>
+                            )}
+                        </section>
+                    )}
 
-                    {/* Completed Orders */}
-                    <section className="mb-8">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-4">Completed Orders</h2>
-                        {completedOrders.length === 0 ? (
-                            <p className="text-gray-500 font-medium">No completed orders yet.</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {completedOrders.map((order) => (
-                                    <div key={order.id} className="p-4 bg-gray-200 rounded-lg shadow-md">
-                                        <p className="text-gray-700 font-medium">Order #{order.id}</p>
-                                        <p className="text-gray-600">Total: R{order.total}</p>
-                                        <p className="text-gray-600">Status: {order.status}</p>
-                                        <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                        <button
-                                            onClick={() => handleReplaceOrder(order)}
-                                            className="mt-2 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-300"
-                                        >
-                                            Replace Order
-                                        </button>
+                    {activeTab === 'pending' && (
+                        <section className="mb-8">
+                            <h2 className="sr-only">Pending Deliveries</h2>
+                            {isLoading ? (
+                                <p className="text-gray-600">Loading pending orders...</p>
+                            ) : pendingOrders.length === 0 ? (
+                                <p className="text-gray-500 font-medium">No pending deliveries found.</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {pendingOrders.map((order) => (
+                                        <div key={order.id} className="p-4 bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                            <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                            <p className="text-gray-600">Total: R{order.total}</p>
+                                            <p className="text-gray-600">Status: {order.status}</p>
+                                            <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                            <p className="text-gray-600">Paystack Reference: {order.paystackReference || 'N/A'}</p>
+                                            <button
+                                                onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
+                                                className={`mt-2 py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                                                disabled={isLoading}
+                                            >
+                                                {isLoading ? 'Processing...' : 'Confirm Delivery'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {activeTab === 'completed' && (
+                        <section className="mb-8">
+                            <h2 className="sr-only">Completed Orders</h2>
+                            {completedOrders.length === 0 ? (
+                                <p className="text-gray-500 font-medium">No completed orders yet.</p>
+                            ) : (
+                                <>
+                                    <div className="space-y-4">
+                                        {completedOrders.slice(0, visibleCompletedOrders).map((order) => (
+                                            <div key={order.id} className="p-4 bg-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                                                <p className="text-gray-700 font-medium">Order #{order.id}</p>
+                                                <p className="text-gray-600">Total: R{order.total}</p>
+                                                <p className="text-gray-600">Status: {order.status}</p>
+                                                <p className="text-gray-600">Created At: {new Date(order.createdAt).toLocaleString()}</p>
+                                                <button
+                                                    onClick={() => handleReplaceOrder(order)}
+                                                    className="mt-2 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200"
+                                                >
+                                                    Replace Order
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </section>
+                                    {visibleCompletedOrders < completedOrders.length && (
+                                        <button
+                                            onClick={loadMoreCompletedOrders}
+                                            className="mt-4 px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-all duration-200"
+                                        >
+                                            Load More
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                        </section>
+                    )}
 
                     {/* Required Details Warning */}
                     {!hasRequiredDetails && (
