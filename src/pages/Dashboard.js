@@ -74,7 +74,7 @@ const Dashboard = () => {
                 return;
             }
             const chargeResponse = await axios.post(
-                'http://localhost:5000/api/confirm-delivery',
+                'https://freshcart-tjns.vercel.app:5000/api/confirm-delivery',
                 {
                     orderId,
                     email: user.email,
@@ -126,7 +126,7 @@ const Dashboard = () => {
 
             // Process refund via server endpoint (no Paystack call from client)
             const refundResponse = await axios.post(
-                'http://localhost:5000/api/request-refund',
+                'https://freshcart-tjns.vercel.app:5000/api/request-refund',
                 {
                     transactionId: order.transactionId,
                     amount: amount,
@@ -139,7 +139,7 @@ const Dashboard = () => {
         } else if (order.paymentMethod === 'Pay on Delivery') {
             // Simulate refund for "Pay on Delivery" by updating status and notifying admin (via server for consistency)
             const podRefundResponse = await axios.post(
-                'http://localhost:5000/api/request-pod-refund',
+                'https://freshcart-tjns.vercel.app:5000/api/request-pod-refund',
                 {
                     orderId: order.id,
                     email: user.email,

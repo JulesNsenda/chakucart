@@ -40,7 +40,7 @@ const Payment = () => {
     const handlePaystackPayment = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/initialize-transaction', {
+            const response = await axios.post('https://freshcart-tjns.vercel.app:5000/api/initialize-transaction', {
                 email: user.email,
                 subtotal: subtotal + tax,
                 shipping,
@@ -66,7 +66,7 @@ const Payment = () => {
 
     const verifyPayment = async (reference, paymentMethod) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/verify-transaction', {
+            const response = await axios.post('https://freshcart-tjns.vercel.app:5000/api/verify-transaction', {
                 reference,
                 email: user.email,
             });
@@ -116,7 +116,7 @@ const Payment = () => {
                 return;
             }
 
-            const response = await axios.post('http://localhost:5000/api/pay-on-delivery', {
+            const response = await axios.post('https://freshcart-tjns.vercel.app:5000/api/pay-on-delivery', {
                 cart,
                 total: total.toFixed(2),
                 email: user.email,

@@ -57,7 +57,7 @@ const AccountSettings = () => {
         setIsLinking(true);
         try {
             console.log('Linking card for email:', user.email, 'with amount:', 100);
-            const response = await axios.post('http://localhost:5000/api/initialize-authorization', {
+            const response = await axios.post('https://freshcart-tjns.vercel.app:5000/api/initialize-authorization', {
                 email: user.email,
                 amount: 100, // ZAR 1.00 in kobo
             });
@@ -114,7 +114,7 @@ const AccountSettings = () => {
     const verifyAuthorization = useCallback(async (reference) => {
         try {
             console.log('Verifying authorization with reference:', reference);
-            const response = await axios.post('http://localhost:5000/api/verify-transaction', {
+            const response = await axios.post('https://freshcart-tjns.vercel.app:5000/api/verify-transaction', {
                 reference,
                 email: user.email,
             });
@@ -125,7 +125,7 @@ const AccountSettings = () => {
                 if (authorizationData && authorizationData.authorization_code) {
                     const authorizationCode = authorizationData.authorization_code;
                     console.log('Found authorization code:', authorizationCode);
-                    await axios.post('http://localhost:5000/api/save-authorization', {
+                    await axios.post('https://freshcart-tjns.vercel.app:5000/api/save-authorization', {
                         email: user.email,
                         authorizationCode,
                     });
