@@ -14,6 +14,9 @@ const Payment = () => {
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { showToast } = useToast();
+    const API_BASE_URL = process.env.NODE_ENV === 'production'
+        ? '/api'
+        : 'http://localhost:5000/api';
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -40,7 +43,7 @@ const Payment = () => {
     const handlePaystackPayment = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/initialize-transaction', {
+            const response = await axios.post(`${API_BASE_URL}/initialize-transaction`, {
                 email: user.email,
                 subtotal: subtotal + tax,
                 shipping,
@@ -66,7 +69,7 @@ const Payment = () => {
 
     const verifyPayment = async (reference, paymentMethod) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/verify-transaction', {
+            const response = await axios.post(`${API_BASE_URL}/verify-transaction`, {
                 reference,
                 email: user.email,
             });
@@ -116,7 +119,7 @@ const Payment = () => {
                 return;
             }
 
-            const response = await axios.post('http://localhost:5000/api/pay-on-delivery', {
+            const response = await axios.post(`${API_BASE_URL}/pay-on-delivery`, {
                 cart,
                 total: total.toFixed(2),
                 email: user.email,

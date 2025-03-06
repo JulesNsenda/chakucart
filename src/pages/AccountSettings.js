@@ -14,6 +14,9 @@ const AccountSettings = () => {
     const [isLinking, setIsLinking] = useState(false); // State for linking process
     const [error, setError] = useState(''); // State for errors
     const navigate = useNavigate();
+    const API_BASE_URL = process.env.NODE_ENV === 'production'
+        ? '/api'
+        : 'http://localhost:5000/api';
 
     // Use useCallback to memoize handleSubmit to prevent unnecessary re-renders
     const handleSubmit = useCallback((e) => {
@@ -57,7 +60,7 @@ const AccountSettings = () => {
         setIsLinking(true);
         try {
             console.log('Linking card for email:', user.email, 'with amount:', 100);
-            const response = await axios.post('http://localhost:5000/api/initialize-authorization', {
+            const response = await axios.post( `${API_BASE_URL}/initialize-authorization`, {
                 email: user.email,
                 amount: 100, // ZAR 1.00 in kobo
             });
@@ -114,7 +117,7 @@ const AccountSettings = () => {
     const verifyAuthorization = useCallback(async (reference) => {
         try {
             console.log('Verifying authorization with reference:', reference);
-            const response = await axios.post('http://localhost:5000/api/verify-transaction', {
+            const response = await axios.post( `${API_BASE_URL}/api/verify-transaction`, {
                 reference,
                 email: user.email,
             });
@@ -125,7 +128,7 @@ const AccountSettings = () => {
                 if (authorizationData && authorizationData.authorization_code) {
                     const authorizationCode = authorizationData.authorization_code;
                     console.log('Found authorization code:', authorizationCode);
-                    await axios.post('http://localhost:5000/api/save-authorization', {
+                    await axios.post( `${API_BASE_URL}/save-authorization`, {
                         email: user.email,
                         authorizationCode,
                     });

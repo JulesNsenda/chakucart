@@ -23,6 +23,9 @@ const Dashboard = () => {
     const [showRefundDialog, setShowRefundDialog] = useState(false); // State for refund confirmation dialog
     const [selectedOrder, setSelectedOrder] = useState(null); // Store the order to refund
     const [refundReason, setRefundReason] = useState(''); // State for refund reason/comment
+    const API_BASE_URL = process.env.NODE_ENV === 'production'
+        ? '/api'
+        : 'http://localhost:5000/api';
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -74,7 +77,7 @@ const Dashboard = () => {
                 return;
             }
             const chargeResponse = await axios.post(
-                'http://localhost:5000/api/confirm-delivery',
+                `${API_BASE_URL}/confirm-delivery`,
                 {
                     orderId,
                     email: user.email,
@@ -126,7 +129,7 @@ const Dashboard = () => {
 
             // Process refund via server endpoint (no Paystack call from client)
             const refundResponse = await axios.post(
-                'http://localhost:5000/api/request-refund',
+                `${API_BASE_URL}/request-refund`,
                 {
                     transactionId: order.transactionId,
                     amount: amount,
@@ -139,7 +142,7 @@ const Dashboard = () => {
         } else if (order.paymentMethod === 'Pay on Delivery') {
             // Simulate refund for "Pay on Delivery" by updating status and notifying admin (via server for consistency)
             const podRefundResponse = await axios.post(
-                'http://localhost:5000/api/request-pod-refund',
+                `${API_BASE_URL}/request-pod-refund`,
                 {
                     orderId: order.id,
                     email: user.email,
