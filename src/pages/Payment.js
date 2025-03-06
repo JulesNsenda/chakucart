@@ -108,15 +108,8 @@ const Payment = () => {
     const handlePayOnDelivery = async () => {
         setIsLoading(true);
         try {
-            if (!isCardLinked) {
+            if (!isCardLinked || !authorizationCode) {
                 showToast('Please link your card for Pay on Delivery.', 'warning', {
-                    onClose: () => navigate('/account-settings'),
-                });
-                setIsLoading(false);
-                return;
-            }
-            if (!authorizationCode) {
-                showToast('No authorization code found. Please link your card.', 'warning', {
                     onClose: () => navigate('/account-settings'),
                 });
                 setIsLoading(false);
@@ -129,6 +122,7 @@ const Payment = () => {
                 email: user.email,
                 authorizationCode,
             });
+
             if (response.data.status === 'success') {
                 const order = {
                     ...response.data.order,
