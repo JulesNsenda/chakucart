@@ -117,7 +117,7 @@ const AccountSettings = () => {
     const verifyAuthorization = useCallback(async (reference) => {
         try {
             console.log('Verifying authorization with reference:', reference);
-            const response = await axios.post( `${API_BASE_URL}/api/verify-transaction`, {
+            const response = await axios.post( `${API_BASE_URL}/verify-transaction`, {
                 reference,
                 email: user.email,
             });
