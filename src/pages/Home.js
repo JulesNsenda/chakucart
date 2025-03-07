@@ -1,19 +1,22 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
+import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import ProductCard from '../components/ProductCard';
 import Footer from '../components/Footer';
 
 const ProductSkeleton = () => (
-  <div className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse">
-    <div className="h-32 sm:h-40 bg-gray-300"></div>
-    <div className="p-3 sm:p-4">
-      <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
-      <div className="h-4 bg-gray-300 rounded w-1/2 mb-2"></div>
-      <div className="h-4 bg-gray-300 rounded w-1/3 mb-4"></div>
-      <div className="h-10 bg-gray-300 rounded"></div>
+  <div className="bg-white shadow-md rounded-xl overflow-hidden animate-pulse">
+    <div className="h-40 bg-gray-300"></div>
+    <div className="p-4">
+      <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+      <div className="h-6 bg-gray-300 rounded w-1/2 mb-2"></div>
+      <div className="flex justify-between items-center">
+        <div className="h-6 bg-gray-300 rounded w-1/3"></div>
+        <div className="h-8 w-8 bg-gray-300 rounded-full"></div>
+      </div>
     </div>
   </div>
 );
@@ -29,6 +32,7 @@ const Home = () => {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const productsRef = useRef(null);
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
   const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
@@ -39,6 +43,16 @@ const Home = () => {
     { value: 'name-asc', label: 'Name: A-Z' },
     { value: 'name-desc', label: 'Name: Z-A' },
   ];
+
+  const categoryIcons = {
+    all: "🛒",
+    fruits: "🍎",
+    vegetables: "🥦",
+    dairy: "🥛",
+    meat: "🥩",
+    bread: "🍞",
+    beverages: "🥤"
+  };
 
   const productNames = allProducts.map(p => p.name);
 
@@ -100,6 +114,10 @@ const Home = () => {
     productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleCategoryClick = (cat) => {
+    setCategory(cat);
+  };
+
   const indexOfLastItem = currentPage * itemsPerPageOptions;
   const indexOfFirstItem = indexOfLastItem - itemsPerPageOptions;
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
@@ -109,69 +127,116 @@ const Home = () => {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
       <main className="flex-1">
-        <Hero onShopNow={handleShopNow} />
-        <section className="container mx-auto px-2 sm:px-4 py-6">
-          <div ref={productsRef}>
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center text-gray-800">Our Products</h2>
+        <div className="bg-gradient-to-r from-green-500 to-teal-600 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute transform -rotate-12 -left-10 -top-10 w-40 h-40 rounded-full bg-white"></div>
+            <div className="absolute right-0 bottom-0 w-64 h-64 rounded-full bg-white"></div>
+            <div className="absolute right-1/4 top-1/3 w-24 h-24 rounded-full bg-white"></div>
+          </div>
+          <Hero onShopNow={handleShopNow} />
+        </div>
 
-            <div className="mb-4 bg-white p-3 sm:p-4 rounded-lg shadow-lg">
-              <form onSubmit={handleSearch} className="mb-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search groceries..."
-                    className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                    value={searchTerm}
-                    onChange={handleInputChange}
-                    aria-label="Search groceries"
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 sm:p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                  >
-                    <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </button>
-                  {searchSuggestions.length > 0 && (
-                    <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
-                      {searchSuggestions.map((suggestion, index) => (
-                        <li
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="p-2 text-sm hover:bg-gray-100 cursor-pointer"
-                        >
-                          {suggestion}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+        {/* Category Tabs */}
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex overflow-x-auto space-x-4 pb-2 -mx-4 px-4 hide-scrollbar">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => handleCategoryClick(cat)}
+                className={`flex flex-col items-center justify-center min-w-16 h-16 rounded-lg shadow-md transition-all ${category === cat
+                    ? 'bg-green-500 text-white'
+                    : 'bg-white hover:bg-gray-50'
+                  }`}
+              >
+                <span className="text-xl">{categoryIcons[cat]}</span>
+                <span className="text-xs font-medium capitalize">{cat}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <section className="container mx-auto px-4 py-6" ref={productsRef}>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold mb-0 text-gray-800">Our Products</h2>
+
+            <button
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="flex items-center bg-white px-4 py-2 rounded-full border shadow-sm hover:shadow"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              <span>Filters</span>
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </button>
+          </div>
+
+          {/* Search and Filters */}
+          <div className={`bg-white rounded-lg shadow-lg p-4 mb-6 transition-all ${filtersOpen ? 'block' : 'hidden'}`}>
+            <div className="relative mb-4">
+              <form onSubmit={handleSearch}>
+                <input
+                  type="text"
+                  placeholder="Search groceries..."
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  value={searchTerm}
+                  onChange={handleInputChange}
+                  aria-label="Search groceries"
+                />
+                <Search className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
               </form>
+              {searchSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
+                  {searchSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0"
+                    >
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   {sortOptions.map(option => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   {categories.map(cat => (
                     <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
                 <select
                   value={stockStatus}
                   onChange={(e) => setStockStatus(e.target.value)}
-                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   {stockStatuses.map(status => (
                     <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}</option>
@@ -180,46 +245,82 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {isLoading ? (
-                Array.from({ length: 8 }).map((_, index) => <ProductSkeleton key={index} />)
-              ) : currentProducts.length > 0 ? (
-                currentProducts.map(product => <ProductCard key={product.id} product={product} />)
-              ) : (
-                <p className="text-center text-gray-500 col-span-full">No products found.</p>
-              )}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setSortBy('none');
+                  setCategory('all');
+                  setStockStatus('all');
+                  setSearchTerm('');
+                  setSearchParams({});
+                }}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md mr-2 hover:bg-gray-300"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setFiltersOpen(false)}
+                className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+              >
+                Apply Filters
+              </button>
             </div>
+          </div>
 
-            {!isLoading && currentProducts.length > 0 && (
-              <div className="mt-6 flex flex-col items-center gap-4">
-                <div className="flex justify-center space-x-2 flex-wrap">
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button
-                      key={i + 1}
-                      onClick={() => paginate(i + 1)}
-                      className={`px-3 py-2 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base ${currentPage === i + 1 ? 'bg-blue-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-                        }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-                <select
-                  value={itemsPerPageOptions}
-                  onChange={(e) => setItemsPerPageOptions(parseInt(e.target.value))}
-                  className="p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                >
-                  <option value={8}>8 Items</option>
-                  <option value={12}>12 Items</option>
-                  <option value={16}>16 Items</option>
-                  <option value={20}>20 Items</option>
-                </select>
-              </div>
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {isLoading ? (
+              Array.from({ length: itemsPerPageOptions }).map((_, index) => <ProductSkeleton key={index} />)
+            ) : currentProducts.length > 0 ? (
+              currentProducts.map(product => <ProductCard key={product.id} product={product} />)
+            ) : (
+              <p className="text-center text-gray-500 col-span-full py-8">No products found.</p>
             )}
           </div>
+
+          {/* Pagination */}
+          {!isLoading && currentProducts.length > 0 && (
+            <div className="mt-6 flex flex-col items-center gap-4">
+              <div className="flex justify-center flex-wrap gap-2">
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => paginate(i + 1)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full text-sm ${currentPage === i + 1
+                        ? 'bg-green-500 text-white shadow'
+                        : 'bg-white border hover:bg-gray-50'
+                      }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={itemsPerPageOptions}
+                onChange={(e) => setItemsPerPageOptions(parseInt(e.target.value))}
+                className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+              >
+                <option value={8}>8 Items Per Page</option>
+                <option value={12}>12 Items Per Page</option>
+                <option value={16}>16 Items Per Page</option>
+                <option value={20}>20 Items Per Page</option>
+              </select>
+            </div>
+          )}
         </section>
       </main>
       <Footer />
+
+      <style jsx>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };
