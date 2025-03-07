@@ -329,8 +329,17 @@ app.post('/api/request-pod-refund', async (req, res) => {
     res.json({ status: 'success', message: 'Pay on Delivery refund processing initiated. Admin notified for manual review.', data: { orderId, email, reason } });
 });
 
-//app.listen(PORT, () => {
-//    console.log(`Server running on port ${PORT}`);
-//});
+app.get('/test', (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Server is up and running!',
+        timestamp: new Date().toISOString(),
+        paystackKeySet: !!PAYSTACK_SECRET_KEY // Check if env var is loaded
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 module.exports = app;
