@@ -1,153 +1,154 @@
-import React, { useState, useContext } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ProductContext } from '../context/ProductContext';
-import { useAuth } from '../context/AuthContext'; // Import useAuth
+import React, { useState, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ProductContext } from "../context/ProductContext";
+import { useAuth } from "../context/AuthContext";
+import { ShoppingCart, User, Menu, LogOut, Home, Info, Phone, Settings, Package } from "lucide-react";
 
 const Header = () => {
-    const [] = useState('');
-    const [isMenuOpen, setIsMenuOpen] = useState(false); // State for mobile menu toggle
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for desktop dropdown toggle
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();
-    const [] = useSearchParams();
     const { cart } = useContext(ProductContext);
-    const { signOut, isAuthenticated } = useAuth(); // Use isAuthenticated for conditional rendering
-
+    const { signOut, isAuthenticated } = useAuth();
 
     const handleSignOut = () => {
-        signOut(); // Use signOut from AuthContext, which preserves user data
-        navigate('/'); // Redirect to home after sign out
-        setIsMenuOpen(false); // Close mobile menu on sign out
-        setIsDropdownOpen(false); // Close desktop dropdown on sign out
-    };
-
-    const handleMenuItemClick = (path) => {
-        navigate(path);
-        setIsMenuOpen(false); // Close mobile menu after selection
-        setIsDropdownOpen(false); // Close desktop dropdown after selection
-    };
-
-    const toggleDropdown = () => {
-        setIsDropdownOpen(!isDropdownOpen); // Toggle desktop dropdown
+        signOut();
+        navigate("/");
+        setIsMenuOpen(false);
+        setIsDropdownOpen(false);
     };
 
     return (
         <header className="sticky top-0 z-50 bg-white shadow-md">
             <div className="container mx-auto px-4 py-4 flex items-center justify-between">
                 {/* Logo */}
-                <Link to="/" className="text-2xl font-bold text-green-600" aria-label="Home">
-                    FreshCart
+                <Link to="/" className="flex items-center space-x-2" aria-label="Home">
+                    <img
+                        src={window.innerWidth > 768 ? "/logo512.png" : "/logo192.png"}
+                        alt="ChakuCart Logo"
+                        className="h-8 w-8"
+                    />
+                    <span className="text-2xl font-bold text-green-600">ChakuCart</span>
                 </Link>
 
-                {/* Navigation and Mobile Menu Toggle */}
-                <div className="flex items-center space-x-6">
-                    {/* Hamburger Menu for Mobile */}
-                    <button
-                        className="md:hidden text-gray-700 hover:text-green-600 focus:outline-none p-2"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        aria-label="Toggle menu"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-                        </svg>
-                    </button>
-
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center space-x-6">
-                        <Link to="/" className="text-gray-700 hover:text-green-600" aria-label="Home page">
-                            Home
-                        </Link>
-                        <Link to="/cart" className="relative text-gray-700 hover:text-green-600" aria-label="Cart page">
-                            Cart
-                            {cart.length > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" aria-label={`${cart.length} items in cart`}>
-                                    {cart.length}
-                                </span>
-                            )}
-                        </Link>
-                        {/* Dropdown Menu for Signed-In Users (Desktop) */}
-                        {isAuthenticated ? (
-                            <>
-                                <div className="relative">
-                                    <button
-                                        className="text-gray-700 hover:text-green-600 focus:outline-none"
-                                        onClick={toggleDropdown}
-                                        aria-label="User menu"
-                                    >
-                                        Account
-                                    </button>
-                                    {isDropdownOpen && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white shadow-md rounded-md">
-                                            <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md transition-all duration-300" onClick={() => handleMenuItemClick('/dashboard')}>
-                                                Dashboard
-                                            </Link>
-                                            <Link to="/account-settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md transition-all duration-300" onClick={() => handleMenuItemClick('/account-settings')}>
-                                                Account Settings
-                                            </Link>
-                                        </div>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={handleSignOut}
-                                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                    aria-label="Sign out"
-                                >
-                                    Sign Out
-                                </button>
-                            </>
-                        ) : (
-                            <Link to="/sign-in" className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors" aria-label="Sign in page">
-                                Sign In
-                            </Link>
+                {/* Mobile Icons: Cart & Sign In/User Menu */}
+                <div className="flex items-center md:hidden space-x-4">
+                    {/* Cart */}
+                    <Link to="/cart" className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
+                        <ShoppingCart className="w-6 h-6" />
+                        {cart.length > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                {cart.length}
+                            </span>
                         )}
-                    </nav>
+                    </Link>
 
-                    {/* Mobile Navigation (Dropdown) */}
-                    {isMenuOpen && (
-                        <div className="absolute top-16 right-0 w-48 bg-white shadow-md rounded-md md:hidden">
-                            <nav className="p-2 space-y-2">
-                                <Link to="/" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="Home page" onClick={() => setIsMenuOpen(false)}>
-                                    Home
-                                </Link>
-                                <Link to="/about" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="About us page" onClick={() => setIsMenuOpen(false)}>
-                                    About
-                                </Link>
-                                <Link to="/contact" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="Contact page" onClick={() => setIsMenuOpen(false)}>
-                                    Contact
-                                </Link>
-                                <Link to="/cart" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="Cart page" onClick={() => setIsMenuOpen(false)}>
-                                    Cart
-                                    {cart.length > 0 && (
-                                        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center" aria-label={`${cart.length} items in cart`}>
-                                            {cart.length}
-                                        </span>
-                                    )}
-                                </Link>
-                                {isAuthenticated ? (
-                                    <>
-                                        <Link to="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="Dashboard" onClick={() => handleMenuItemClick('/dashboard')}>
-                                            Dashboard
-                                        </Link>
-                                        <Link to="/account-settings" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="Account settings" onClick={() => handleMenuItemClick('/account-settings')}>
-                                            Account Settings
-                                        </Link>
-                                        <button
-                                            onClick={handleSignOut}
-                                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600"
-                                            aria-label="Sign out"
-                                        >
-                                            Sign Out
-                                        </button>
-                                    </>
-                                ) : (
-                                    <Link to="/sign-in" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-green-600 rounded-md" aria-label="Sign in page" onClick={() => setIsMenuOpen(false)}>
-                                        Sign In
+                    {/* User Menu */}
+                    {isAuthenticated ? (
+                        <div className="relative">
+                            <button
+                                className="text-gray-700 hover:text-green-600"
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                aria-label="User menu"
+                            >
+                                <User className="w-6 h-6" />
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white shadow-md rounded-md">
+                                    <Link to="/dashboard" className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
+                                        <Package className="w-5 h-5 mr-2" /> Dashboard
                                     </Link>
-                                )}
-                            </nav>
+                                    <Link to="/account-settings" className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
+                                        <Settings className="w-5 h-5 mr-2" /> Account Settings
+                                    </Link>
+                                    <button onClick={handleSignOut} className="flex items-center w-full text-left px-4 py-3 text-red-600 hover:bg-gray-100">
+                                        <LogOut className="w-5 h-5 mr-2" /> Sign Out
+                                    </button>
+                                </div>
+                            )}
                         </div>
+                    ) : (
+                        <Link to="/sign-in" className="text-gray-700 hover:text-green-600" aria-label="Sign In">
+                            <User className="w-6 h-6" />
+                        </Link>
                     )}
+
+                    {/* Mobile Menu Button */}
+                    <button className="text-gray-700 hover:text-green-600 focus:outline-none p-2" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
+                        <Menu className="w-8 h-8" />
+                    </button>
                 </div>
+
+                {/* Desktop Navigation */}
+                <nav className="hidden md:flex items-center space-x-6">
+                    <Link to="/" className="text-gray-700 hover:text-green-600 text-lg">Home</Link>
+                    <Link to="/about" className="text-gray-700 hover:text-green-600 text-lg">About</Link>
+                    <Link to="/contact" className="text-gray-700 hover:text-green-600 text-lg">Contact</Link>
+
+                    {/* Cart */}
+                    <Link to="/cart" className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
+                        <ShoppingCart className="w-6 h-6" />
+                        {cart.length > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                {cart.length}
+                            </span>
+                        )}
+                    </Link>
+
+                    {/* User Menu */}
+                    {isAuthenticated ? (
+                        <div className="relative">
+                            <button
+                                className="text-gray-700 hover:text-green-600"
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                aria-label="User menu"
+                            >
+                                <User className="w-6 h-6" />
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white shadow-md rounded-md">
+                                    <Link to="/dashboard" className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
+                                        <Package className="w-5 h-5 mr-2" /> Dashboard
+                                    </Link>
+                                    <Link to="/account-settings" className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
+                                        <Settings className="w-5 h-5 mr-2" /> Account Settings
+                                    </Link>
+                                    <button onClick={handleSignOut} className="flex items-center w-full text-left px-4 py-3 text-red-600 hover:bg-gray-100">
+                                        <LogOut className="w-5 h-5 mr-2" /> Sign Out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <Link to="/sign-in" className="text-gray-700 hover:text-green-600" aria-label="Sign In">
+                            <User className="w-6 h-6" />
+                        </Link>
+                    )}
+                </nav>
             </div>
+
+            {/* Mobile Menu */}
+            {isMenuOpen && (
+                <div className="absolute top-0 right-0 w-64 bg-white shadow-md rounded-md z-50 md:hidden">
+                    <div className="flex items-center justify-between px-4 py-4 border-b">
+                        <span className="text-2xl font-bold text-green-600">Menu</span>
+                        <button className="text-gray-700 hover:text-green-600 focus:outline-none" onClick={() => setIsMenuOpen(false)} aria-label="Close menu">
+                            ✕
+                        </button>
+                    </div>
+                    <nav className="flex flex-col space-y-2 p-4">
+                        <Link to="/" className="flex items-center text-gray-700 hover:text-green-600 py-2" onClick={() => setIsMenuOpen(false)}>
+                            <Home className="w-5 h-5 mr-2" /> Home
+                        </Link>
+                        <Link to="/about" className="flex items-center text-gray-700 hover:text-green-600 py-2" onClick={() => setIsMenuOpen(false)}>
+                            <Info className="w-5 h-5 mr-2" /> About
+                        </Link>
+                        <Link to="/contact" className="flex items-center text-gray-700 hover:text-green-600 py-2" onClick={() => setIsMenuOpen(false)}>
+                            <Phone className="w-5 h-5 mr-2" /> Contact
+                        </Link>
+                    </nav>
+                </div>
+            )}
         </header>
     );
 };

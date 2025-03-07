@@ -1,17 +1,15 @@
-import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
-import { imageMap } from '../data/products';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import ProductCard from '../components/ProductCard';
 import Footer from '../components/Footer';
 
-// Loading skeleton component
 const ProductSkeleton = () => (
   <div className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse">
-    <div className="h-40 bg-gray-300"></div>
-    <div className="p-4">
+    <div className="h-32 sm:h-40 bg-gray-300"></div>
+    <div className="p-3 sm:p-4">
       <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
       <div className="h-4 bg-gray-300 rounded w-1/2 mb-2"></div>
       <div className="h-4 bg-gray-300 rounded w-1/3 mb-4"></div>
@@ -19,14 +17,6 @@ const ProductSkeleton = () => (
     </div>
   </div>
 );
-
-// Helper function to normalize text for plural/singular matching
-const normalizeText = (text) => {
-  let normalized = text.toLowerCase().trim();
-  if (normalized.endsWith('s')) normalized = normalized.slice(0, -1);
-  if (normalized.endsWith('es')) normalized = normalized.slice(0, -2);
-  return normalized;
-};
 
 const Home = () => {
   const { allProducts, paginate, currentPage } = useContext(ProductContext);
@@ -39,7 +29,6 @@ const Home = () => {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const productsRef = useRef(null);
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
-  const searchInputRef = useRef(null);
 
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
   const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
@@ -51,16 +40,13 @@ const Home = () => {
     { value: 'name-desc', label: 'Name: Z-A' },
   ];
 
-  const productNames = useMemo(() => allProducts.map(p => p.name), [allProducts]);
+  const productNames = allProducts.map(p => p.name);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setIsLoading(true);
-    if (searchTerm.trim()) {
-      setSearchParams({ q: searchTerm.trim() });
-    } else {
-      setSearchParams({});
-    }
+    if (searchTerm.trim()) setSearchParams({ q: searchTerm.trim() });
+    else setSearchParams({});
     setTimeout(() => setIsLoading(false), 500);
   };
 
@@ -69,7 +55,7 @@ const Home = () => {
     setSearchTerm(value);
     if (value) {
       const suggestions = productNames
-        .filter(name => normalizeText(name).includes(normalizeText(value)))
+        .filter(name => name.toLowerCase().includes(value.toLowerCase()))
         .slice(0, 5);
       setSearchSuggestions(suggestions);
     } else {
@@ -83,66 +69,35 @@ const Home = () => {
     setSearchParams({ q: suggestion });
   };
 
-  const [filteredProducts, setFilteredProducts] = useState(() => {
-    const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
-    if (uniqueProducts.length !== 20) {
-      return generateExactlyTwentyUniqueProductsFromExisting(allProducts, imageMap);
-    }
-    return uniqueProducts;
-  });
+  const [filteredProducts, setFilteredProducts] = useState(allProducts.slice(0, 20));
 
   useEffect(() => {
     setIsLoading(true);
-    const searchQuery = searchParams.get('q') || '';
     let filtered = [...allProducts];
-
-    filtered = Array.from(new Map(filtered.map(p => [p.id, p])).values());
+    const searchQuery = searchParams.get('q') || '';
 
     if (searchQuery) {
-      const normalizedQuery = normalizeText(searchQuery);
-      filtered = filtered.filter((product) => {
-        const normalizedName = normalizeText(product.name);
-        const normalizedDescription = normalizeText(product.description);
-        return (
-          normalizedName.includes(normalizedQuery) ||
-          normalizedDescription.includes(normalizedQuery)
-        );
-      });
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
-    if (category !== 'all') {
-      filtered = filtered.filter((product) => product.category === category);
-    }
-
-    if (stockStatus === 'in-stock') {
-      filtered = filtered.filter(product => product.available && product.quantity > 0);
-    } else if (stockStatus === 'out-of-stock') {
-      filtered = filtered.filter(product => !product.available || product.quantity === 0);
-    }
+    if (category !== 'all') filtered = filtered.filter(product => product.category === category);
+    if (stockStatus === 'in-stock') filtered = filtered.filter(product => product.available && product.quantity > 0);
+    else if (stockStatus === 'out-of-stock') filtered = filtered.filter(product => !product.available || product.quantity === 0);
 
     if (sortBy === 'price-asc') filtered.sort((a, b) => a.price - b.price);
     if (sortBy === 'price-desc') filtered.sort((a, b) => b.price - a.price);
     if (sortBy === 'name-asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
     if (sortBy === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
 
-    const finalProducts = Array.from(new Map(filtered.map(p => [p.id, p])).values());
-    setFilteredProducts(finalProducts.slice(0, 20));
+    setFilteredProducts(filtered.slice(0, 20));
     setTimeout(() => setIsLoading(false), 500);
   }, [allProducts, searchParams, sortBy, category, stockStatus]);
 
-  useEffect(() => {
-    const searchQuery = searchParams.get('q') || '';
-    setSearchTerm(searchQuery);
-  }, [searchParams]);
-
   const handleShopNow = () => {
     productsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const handleItemsPerPageChange = (e) => {
-    const newItemsPerPage = parseInt(e.target.value);
-    setItemsPerPageOptions(newItemsPerPage);
-    paginate(1);
   };
 
   const indexOfLastItem = currentPage * itemsPerPageOptions;
@@ -155,161 +110,110 @@ const Home = () => {
       <Header />
       <main className="flex-1">
         <Hero onShopNow={handleShopNow} />
-        <section className="container mx-auto px-4 py-12">
+        <section className="container mx-auto px-2 sm:px-4 py-6">
           <div ref={productsRef}>
-            <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">Our Products</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center text-gray-800">Our Products</h2>
 
-            {/* Search, Sort, Filter, and Stock Status Section */}
-            <div className="mb-8 bg-white p-6 rounded-lg shadow-lg">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                {/* Search Bar with Autocomplete */}
-                <form onSubmit={handleSearch} className="w-full md:w-1/2 relative">
-                  <div className="relative flex items-center">
-                    <input
-                      type="text"
-                      placeholder="Search groceries..."
-                      className="w-full p-3 pl-4 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
-                      value={searchTerm}
-                      onChange={handleInputChange}
-                      ref={searchInputRef}
-                      aria-label="Search groceries"
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                      aria-label="Search"
-                    >
-                      {isLoading ? (
-                        <span className="loading loading-spinner loading-sm"></span>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+            <div className="mb-4 bg-white p-3 sm:p-4 rounded-lg shadow-lg">
+              <form onSubmit={handleSearch} className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search groceries..."
+                    className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                    value={searchTerm}
+                    onChange={handleInputChange}
+                    aria-label="Search groceries"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 sm:p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  >
+                    <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
                   {searchSuggestions.length > 0 && (
                     <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
                       {searchSuggestions.map((suggestion, index) => (
                         <li
                           key={index}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="p-2 hover:bg-gray-100"
+                          className="p-2 text-sm hover:bg-gray-100 cursor-pointer"
                         >
                           {suggestion}
                         </li>
                       ))}
                     </ul>
                   )}
-                </form>
-
-                {/* Sort, Filter, and Stock Status Dropdowns */}
-                <div className="flex flex-col md:flex-row gap-4 w-full md:w-1/2">
-                  {/* Sort */}
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
-                    aria-label="Sort products"
-                  >
-                    {sortOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Filter by Category */}
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
-                    aria-label="Filter by category"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Filter by Stock Status */}
-                  <select
-                    value={stockStatus}
-                    onChange={(e) => setStockStatus(e.target.value)}
-                    className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
-                    aria-label="Filter by stock status"
-                  >
-                    {stockStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
-                      </option>
-                    ))}
-                  </select>
                 </div>
+              </form>
+
+              <div className="space-y-4">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                >
+                  {sortOptions.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                  ))}
+                </select>
+                <select
+                  value={stockStatus}
+                  onChange={(e) => setStockStatus(e.target.value)}
+                  className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                >
+                  {stockStatuses.map(status => (
+                    <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Products Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {isLoading ? (
-                Array.from({ length: 8 }).map((_, index) => (
-                  <ProductSkeleton key={index} />
-                ))
+                Array.from({ length: 8 }).map((_, index) => <ProductSkeleton key={index} />)
               ) : currentProducts.length > 0 ? (
-                currentProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))
+                currentProducts.map(product => <ProductCard key={product.id} product={product} />)
               ) : (
                 <p className="text-center text-gray-500 col-span-full">No products found.</p>
               )}
             </div>
 
-            {/* Pagination and Items Per Page */}
             {!isLoading && currentProducts.length > 0 && (
-              <div className="mt-12 flex flex-col md:flex-row justify-center items-center gap-6">
-                <div className="flex justify-center space-x-2">
+              <div className="mt-6 flex flex-col items-center gap-4">
+                <div className="flex justify-center space-x-2 flex-wrap">
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button
                       key={i + 1}
                       onClick={() => paginate(i + 1)}
-                      className={`px-4 py-2 rounded-md font-medium ${currentPage === i + 1
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                      className={`px-3 py-2 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base ${currentPage === i + 1 ? 'bg-blue-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                         }`}
-                      aria-label={`Page ${i + 1}`}
                     >
                       {i + 1}
                     </button>
                   ))}
                 </div>
-
                 <select
                   value={itemsPerPageOptions}
-                  onChange={handleItemsPerPageChange}
-                  className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 hover:bg-gray-50"
-                  aria-label="Items per page"
+                  onChange={(e) => setItemsPerPageOptions(parseInt(e.target.value))}
+                  className="p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 >
                   <option value={8}>8 Items</option>
                   <option value={12}>12 Items</option>
                   <option value={16}>16 Items</option>
                   <option value={20}>20 Items</option>
                 </select>
-              </div>
-            )}
-
-            {/* Payment Methods */}
-            {!isLoading && (
-              <div className="mt-12 text-center">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4" role="heading">Payment Methods Supported</h3>
-                <div className="flex justify-center gap-6" role="list">
-                  <span className="inline-flex items-center px-4 py-2 bg-gray-100 rounded-md text-gray-700" role="listitem">
-                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18"></path>
-                    </svg>
-                    Paystack
-                  </span>
-                </div>
               </div>
             )}
           </div>
@@ -319,64 +223,5 @@ const Home = () => {
     </div>
   );
 };
-
-// Helper function to generate exactly 20 unique products from existing list (fallback)
-function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, imageMap) {
-  const seen = new Set();
-  const uniqueProducts = [];
-  const groceryNames = [
-    'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
-    'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
-    'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
-  ];
-
-  existingProducts.forEach(product => {
-    if (!seen.has(product.name) && uniqueProducts.length < 20) {
-      uniqueProducts.push(product);
-      seen.add(product.name);
-    }
-  });
-
-  while (uniqueProducts.length < 20) {
-    const name = groceryNames.find(n => !seen.has(n));
-    if (name) {
-      seen.add(name);
-      const product = {
-        id: uniqueProducts.length + 1,
-        name,
-        description: `Fresh ${name} from local markets`,
-        price: Number((Math.random() * 20 + 1).toFixed(2)),
-        unit: getUnitForCategory(name),
-        quantity: Math.floor(Math.random() * 10) + 1,
-        available: Math.random() > 0.1,
-        image: imageMap[name],
-        category: determineCategory(name),
-      };
-      uniqueProducts.push(product);
-    }
-  }
-
-  return uniqueProducts;
-}
-
-function getUnitForCategory(name) {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
-  if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
-  if (lowerName.includes('bread')) return 'loaf';
-  if (lowerName.includes('eggs')) return 'dozen';
-  return 'each';
-}
-
-function determineCategory(name) {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
-  if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
-  if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
-  if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
-  if (lowerName.includes('bread')) return 'bread';
-  if (lowerName.includes('juice')) return 'beverages';
-  return 'all';
-}
 
 export default Home;

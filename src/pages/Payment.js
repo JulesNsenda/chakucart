@@ -77,11 +77,11 @@ const Payment = () => {
                     id: `ORD-${Date.now()}`,
                     items: [...cart],
                     total: total.toFixed(2),
-                    status: 'Confirmed', // Initial status for Pay Now
+                    status: 'Confirmed',
                     paymentMethod,
                     createdAt: new Date().toISOString(),
                     paystackReference: reference,
-                    transactionId: transactionId, // Use verified transactionId with fallback
+                    transactionId,
                     subtotal,
                     shipping,
                     email: user.email,
@@ -159,30 +159,30 @@ const Payment = () => {
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
-            <main className="flex-1 p-4">
-                <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Payment</h1>
-                    <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-                        <h2 className="text-lg font-semibold text-gray-700 mb-2">Order Summary</h2>
-                        <div className="flex justify-between mb-2">
-                            <p className="text-gray-600">Subtotal</p>
-                            <p className="text-gray-800">R{subtotal.toFixed(2)}</p>
+            <main className="flex-1 p-2 sm:p-4">
+                <div className="max-w-sm sm:max-w-2xl mx-auto bg-white shadow-md rounded-lg p-4 sm:p-6">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Payment</h1>
+                    <div className="mb-4 sm:mb-6 p-2 sm:p-4 bg-gray-100 rounded-lg">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Order Summary</h2>
+                        <div className="flex justify-between mb-1 sm:mb-2">
+                            <p className="text-gray-600 text-sm sm:text-base">Subtotal</p>
+                            <p className="text-gray-800 text-sm sm:text-base">R{subtotal.toFixed(2)}</p>
                         </div>
-                        <div className="flex justify-between mb-2">
-                            <p className="text-gray-600">Tax (15%)</p>
-                            <p className="text-gray-800">R{tax.toFixed(2)}</p>
+                        <div className="flex justify-between mb-1 sm:mb-2">
+                            <p className="text-gray-600 text-sm sm:text-base">Tax (15%)</p>
+                            <p className="text-gray-800 text-sm sm:text-base">R{tax.toFixed(2)}</p>
                         </div>
-                        <div className="flex justify-between mb-2">
-                            <p className="text-gray-600">Shipping (R10/km, 5km) <span className="text-sm text-gray-500">(Paid to Rider)</span></p>
-                            <p className="text-gray-800">R{shipping.toFixed(2)}</p>
+                        <div className="flex justify-between mb-1 sm:mb-2">
+                            <p className="text-gray-600 text-sm sm:text-base">Shipping (R10/km, 5km) <span className="text-xs sm:text-sm text-gray-500">(Paid to Rider)</span></p>
+                            <p className="text-gray-800 text-sm sm:text-base">R{shipping.toFixed(2)}</p>
                         </div>
-                        <div className="flex justify-between mt-2 border-t pt-2">
-                            <p className="text-xl font-bold text-gray-800">Total</p>
-                            <p className="text-xl font-bold text-blue-600">R{total.toFixed(2)}</p>
+                        <div className="flex justify-between mt-1 sm:mt-2 border-t pt-1 sm:pt-2">
+                            <p className="text-lg sm:text-xl font-bold text-gray-800">Total</p>
+                            <p className="text-lg sm:text-xl font-bold text-blue-600">R{total.toFixed(2)}</p>
                         </div>
                     </div>
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-gray-700 mb-2">Select Payment Method</h2>
+                    <div className="mb-4 sm:mb-6">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Select Payment Method</h2>
                         <div className="space-y-2">
                             <label className="flex items-center">
                                 <input
@@ -193,7 +193,7 @@ const Payment = () => {
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                     className="mr-2"
                                 />
-                                Pay Now (Paystack)
+                                <span className="text-sm sm:text-base">Pay Now (Paystack)</span>
                             </label>
                             <label className="flex items-center">
                                 <input
@@ -204,14 +204,14 @@ const Payment = () => {
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                     className="mr-2"
                                 />
-                                Pay on Delivery
+                                <span className="text-sm sm:text-base">Pay on Delivery</span>
                             </label>
                         </div>
                     </div>
                     <button
                         onClick={handlePayment}
                         disabled={isLoading}
-                        className={`w-full py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                        className={`w-full py-2 sm:py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 text-sm sm:text-base ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                     >
                         {isLoading ? 'Processing...' : 'Confirm Payment'}
                     </button>
