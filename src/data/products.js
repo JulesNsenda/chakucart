@@ -26,7 +26,6 @@ const groceryNames = [
     'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
 ];
 
-const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
 
 const imageMap = {
     'Apples': apples,

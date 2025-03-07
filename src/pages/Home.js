@@ -29,7 +29,7 @@ const normalizeText = (text) => {
 };
 
 const Home = () => {
-  const { allProducts, paginate, currentPage, itemsPerPage, cart, addToCart } = useContext(ProductContext);
+  const { allProducts, paginate, currentPage } = useContext(ProductContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
@@ -37,7 +37,6 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const navigate = useNavigate();
   const productsRef = useRef(null);
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
   const searchInputRef = useRef(null);

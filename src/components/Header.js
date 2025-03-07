@@ -4,24 +4,14 @@ import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext'; // Import useAuth
 
 const Header = () => {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [] = useState('');
     const [isMenuOpen, setIsMenuOpen] = useState(false); // State for mobile menu toggle
     const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for desktop dropdown toggle
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [] = useSearchParams();
     const { cart } = useContext(ProductContext);
-    const { user, signOut, isAuthenticated } = useAuth(); // Use isAuthenticated for conditional rendering
+    const { signOut, isAuthenticated } = useAuth(); // Use isAuthenticated for conditional rendering
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (searchTerm.trim()) {
-            setSearchParams({ q: searchTerm.trim() }); // Update URL with search query
-            navigate('/'); // Navigate to homepage to trigger re-render
-        } else {
-            setSearchParams({}); // Clear search if empty
-            navigate('/'); // Navigate to reset to full list
-        }
-    };
 
     const handleSignOut = () => {
         signOut(); // Use signOut from AuthContext, which preserves user data

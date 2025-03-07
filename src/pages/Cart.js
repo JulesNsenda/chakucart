@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
@@ -9,8 +9,8 @@ import CustomDialog from '../components/CustomDialog'; // Import the custom dial
 const Cart = () => {
     const { cart, removeFromCart, updateCartQuantity, clearCart, savedForLater, saveForLater, removeFromSaved, moveToCart } = useContext(ProductContext);
     const navigate = useNavigate();
-    const { user, isAuthenticated, hasRequiredDetails } = useAuth(); // Check if required details exist
-    const [location, setLocation] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town, South Africa (warehouse location)
+    const { isAuthenticated, hasRequiredDetails } = useAuth(); // Check if required details exist
+    const [location] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town, South Africa (warehouse location)
     const [distance, setDistance] = useState(0); // Distance in kilometers
     const [clientLocation, setClientLocation] = useState(null); // Client's location, initially null
     const [showRemoveDialog, setShowRemoveDialog] = useState(false); // State for remove confirmation

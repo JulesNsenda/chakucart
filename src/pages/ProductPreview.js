@@ -20,7 +20,7 @@ const ProductSkeleton = () => (
 
 const ProductPreview = () => {
     const { id } = useParams(); // Get product ID from URL
-    const { allProducts, cart, addToCart, reviews, addReview, getAverageRating } = useContext(ProductContext);
+    const { allProducts, addToCart, reviews, addReview, getAverageRating } = useContext(ProductContext);
     const navigate = useNavigate();
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');

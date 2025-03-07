@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import generateRandomProducts, { imageMap } from '../data/products';
+import { imageMap } from '../data/products';
 
 export const ProductContext = createContext();
 

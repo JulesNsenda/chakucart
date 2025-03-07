@@ -1,6 +1,6 @@
 // src/pages/AccountSettings.js
 import React, { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -8,7 +8,7 @@ import { toast } from 'react-toastify'; // For in-app notifications
 import axios from 'axios';
 
 const AccountSettings = () => {
-    const { user, updateUserDetails, isAuthenticated, isCardLinked, authorizationCode } = useAuth(); // Added authorizationCode
+    const { user, updateUserDetails, isAuthenticated, isCardLinked } = useAuth(); // Added authorizationCode
     const [address, setAddress] = useState(user?.address || '');
     const [cardNumber, setCardNumber] = useState(user?.cardNumber || '');
     const [isLinking, setIsLinking] = useState(false); // State for linking process
@@ -66,7 +66,7 @@ const AccountSettings = () => {
             });
 
             console.log('Initialize Authorization Response:', response.data);
-            const { authorization_url, reference } = response.data.data;
+            const { reference } = response.data.data;
             console.log('Paystack Public Key:', process.env.REACT_APP_PAYSTACK_PUBLIC_KEY); // Debug log
             const handler = window.PaystackPop.setup({
                 key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
