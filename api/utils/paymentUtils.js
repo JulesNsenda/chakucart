@@ -1,11 +1,9 @@
-// utils/paymentUtils.js (unchanged, but noted as optional)
 const axios = require('axios');
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
 const getUserPaymentDetails = async (email, total) => {
     try {
-        console.log('PAYSTACK_SECRET_KEY:', PAYSTACK_SECRET_KEY);
         console.log('Fetching Paystack customer for email:', email);
 
         // Step 1: Find the Paystack customer based on email
@@ -60,7 +58,7 @@ const getUserPaymentDetails = async (email, total) => {
 
         const authorization = authorizations[0]; // Use the first saved card
 
-        // Step 3: Optionally pre-authorize the total amount to verify funds (if supported for ZAR)
+        // Step 3: Optionally pre-authorize the total amount to verify funds
         const totalInKobo = Math.round(parseFloat(total) * 100); // Convert ZAR to kobo
         let preAuthResult = { status: 'success' }; // Default to success if pre-auth fails for ZAR
 
@@ -98,7 +96,7 @@ const getUserPaymentDetails = async (email, total) => {
             linkedCard: true,
             availableBalance: null, // Paystack doesn’t provide balance; rely on pre-auth or assume valid
             cardDetails: {
-                authorization_code: authorization.authorization_code, // Store the authorization code for COD
+                authorization_code: authorization.authorization_code, // Store the authorization code for POD
                 last4: authorization.last4,
                 expiry: `${authorization.exp_month}/${authorization.exp_year}`,
                 brand: authorization.brand,

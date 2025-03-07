@@ -63,7 +63,6 @@ const Dashboard = () => {
     const fetchOrdersFromLocalStorage = () => {
         const orders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
         const userOrders = orders.filter(order => order.email === user.email);
-        console.log('Fetched orders for user:', userOrders);
         setAllOrders(userOrders);
     };
 
@@ -125,7 +124,6 @@ const Dashboard = () => {
 
         if (order.paymentMethod === 'Pay Now' && order.transactionId) {
             const amount = Math.round(parseFloat(order.total) * 100);
-            console.log('Dashboard Transaction ID: ', order.transactionId, 'amount: ', amount, 'reason: ', refundReason);
 
             // Process refund via server endpoint (no Paystack call from client)
             const refundResponse = await axios.post(
@@ -137,7 +135,6 @@ const Dashboard = () => {
                 }
             );
 
-            console.log('Refund Response: ', refundResponse.data); // Debug the response
             showToast('Request for Refund queued.', 'info');
         } else if (order.paymentMethod === 'Pay on Delivery') {
             // Simulate refund for "Pay on Delivery" by updating status and notifying admin (via server for consistency)

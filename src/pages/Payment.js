@@ -33,11 +33,9 @@ const Payment = () => {
     const totalInKobo = Math.round(total * 100);
 
     const saveOrderToLocalStorage = (order) => {
-        console.log('Order being saved: ', order);
         const existingOrders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
         const updatedOrders = [...existingOrders, order];
         localStorage.setItem('freshCartOrders', JSON.stringify(updatedOrders));
-        console.log('Saved to localStorage:', updatedOrders);
     };
 
     const handlePaystackPayment = async () => {
@@ -73,14 +71,8 @@ const Payment = () => {
                 reference,
                 email: user.email,
             });
-            console.log("Verifying payment======================== ", response.data);
-            console.log("Full Response Data: ", response.data);
-            console.log("Nested Data: ", response.data.data);
             if (response.data.status === 'success') {
                 const transactionId = response.data.data.transactionId || response.data.data.id || response.data.data.reference;
-                console.log("Transaction ID Attempt: ", transactionId);
-                console.log('Data: ', response.data.data);
-                console.log("Transaction ID: ", transactionId);
                 const order = {
                     id: `ORD-${Date.now()}`,
                     items: [...cart],

@@ -8,7 +8,7 @@ export const ToastProvider = ({ children }) => {
     const showToast = (message, type = 'info') => {
         setToast({ message, type });
 
-        setTimeout(() => setToast(null), 3000); // Auto-hide after 3 seconds
+        setTimeout(() => setToast(null), 3000);
     };
 
     const getToastStyle = (type) => {

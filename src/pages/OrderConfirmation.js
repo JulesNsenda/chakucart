@@ -9,16 +9,13 @@ const OrderConfirmation = () => {
 
     const getLatestOrder = () => {
         const orders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
-        console.log('Orders in localStorage:', orders);
         return orders.length > 0 ? orders[orders.length - 1] : null;
     };
 
     useEffect(() => {
         const latestOrder = getLatestOrder();
-        console.log('Latest order fetched:', latestOrder);
         setOrder(latestOrder);
         if (!latestOrder) {
-            console.log('No order found, redirecting to dashboard');
             navigate('/dashboard');
         }
     }, [navigate]);

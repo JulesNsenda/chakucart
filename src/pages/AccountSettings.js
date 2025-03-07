@@ -27,11 +27,6 @@ const AccountSettings = () => {
         }
 
         // Prepare updated user data (save cardNumber always, linkedCard remains false until linked via Paystack)
-        console.log('Preparing to update user with:', {
-            address,
-            cardNumber,
-            linkedCard: isCardLinked, // Keep linkedCard as is (false until linked)
-        });
         const updatedUser = {
             ...user,
             address,
@@ -41,7 +36,6 @@ const AccountSettings = () => {
 
         // Update user details via AuthContext, persisting in localStorage
         updateUserDetails(updatedUser);
-        console.log('Updated user sent to AuthContext:', updatedUser);
 
         // Use setTimeout to ensure navigation happens after render
         setTimeout(() => {
@@ -59,15 +53,12 @@ const AccountSettings = () => {
 
         setIsLinking(true);
         try {
-            console.log('Linking card for email:', user.email, 'with amount:', 100);
             const response = await axios.post( `${API_BASE_URL}/initialize-authorization`, {
                 email: user.email,
                 amount: 100, // ZAR 1.00 in kobo
             });
 
-            console.log('Initialize Authorization Response:', response.data);
             const { reference } = response.data.data;
-            console.log('Paystack Public Key:', process.env.REACT_APP_PAYSTACK_PUBLIC_KEY); // Debug log
             const handler = window.PaystackPop.setup({
                 key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
                 email: user.email,
@@ -86,7 +77,6 @@ const AccountSettings = () => {
                             }, 0);
                         })
                         .catch((error) => {
-                            console.error('Error in callback:', error);
                             setTimeout(() => {
                                 setError('Failed to verify authorization. Please try again.');
                                 toast.error('Error verifying authorization: ' + error.message);
@@ -101,10 +91,8 @@ const AccountSettings = () => {
                     }, 0); // Delay to avoid rendering conflicts
                 },
             });
-            console.log('PaystackPop handler setup:', handler);
             handler.openIframe(); // Explicitly call openIframe
         } catch (error) {
-            console.error('Error linking card:', error);
             setTimeout(() => {
                 setError('Failed to link or verify card. Please try again.');
                 toast.error('Failed to link or verify card: ' + (error.response?.data?.message || error.message));
@@ -116,18 +104,15 @@ const AccountSettings = () => {
     // Use useCallback to memoize verifyAuthorization
     const verifyAuthorization = useCallback(async (reference) => {
         try {
-            console.log('Verifying authorization with reference:', reference);
             const response = await axios.post( `${API_BASE_URL}/verify-transaction`, {
                 reference,
                 email: user.email,
             });
-            console.log('Verify Transaction Response (Full):', JSON.stringify(response.data, null, 2)); // Detailed logging
 
             if (response.data.status === 'success') {
                 const authorizationData = response.data.data.authorization;
                 if (authorizationData && authorizationData.authorization_code) {
                     const authorizationCode = authorizationData.authorization_code;
-                    console.log('Found authorization code:', authorizationCode);
                     await axios.post( `${API_BASE_URL}/save-authorization`, {
                         email: user.email,
                         authorizationCode,
@@ -141,19 +126,16 @@ const AccountSettings = () => {
                             authorizationCode: authorizationCode, // Store the full authorization code
                         };
                         updateUserDetails(updatedUser);
-                        console.log('Updated user after linking card (with authorization code):', updatedUser);
                         toast.success('Card linked and verified successfully!');
                         setIsLinking(false); // Ensure linking state is reset
                     }, 0);
                 } else {
-                    console.log('No authorization data found in response:', response.data.data);
                     throw new Error('No authorization code found in Paystack response.');
                 }
             } else {
                 throw new Error('Authorization verification failed.');
             }
         } catch (error) {
-            console.error('Error verifying authorization:', error);
             setTimeout(() => {
                 setError('Failed to verify authorization. Please try again.');
                 toast.error('Error verifying authorization: ' + (error.message || 'Unknown error'));

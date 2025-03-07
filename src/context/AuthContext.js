@@ -11,7 +11,6 @@ export const AuthProvider = ({ children }) => {
         const savedUser = localStorage.getItem('freshCartUser');
         if (savedUser) {
             const parsedUser = JSON.parse(savedUser);
-            console.log('Loaded user from localStorage:', parsedUser); // Debug log
             // Restore user with all fields preserved (default to null/empty if not set)
             setUser({
                 ...parsedUser,
@@ -29,12 +28,10 @@ export const AuthProvider = ({ children }) => {
     // Save user to localStorage when it changes, preserving all data
     useEffect(() => {
         if (user) {
-            console.log('Saving user to localStorage:', user); // Debug log
             try {
                 localStorage.setItem('freshCartUser', JSON.stringify(user));
-                console.log('User saved successfully to localStorage');
             } catch (error) {
-                console.error('Failed to save user to localStorage:', error);
+                console.error('Failed to save user to localStorage:', error);// Debug log
             }
         } else {
             // On sign-out, preserve user data but remove auth state
@@ -42,16 +39,14 @@ export const AuthProvider = ({ children }) => {
             if (savedUserData) {
                 const userData = JSON.parse(savedUserData);
                 if (userData && !user) {
-                    console.log('Preserving user data on sign-out:', { ...userData, isAuthenticated: false }); // Debug log
                     try {
                         localStorage.setItem('freshCartUser', JSON.stringify({ ...userData, isAuthenticated: false }));
-                        console.log('User data preserved on sign-out');
                     } catch (error) {
-                        console.error('Failed to preserve user data on sign-out:', error);
+                        console.error('Failed to preserve user data on sign-out:', error);// Debug log
                     }
                 }
             } else {
-                console.log('No user data to preserve on sign-out');
+                console.log('No user data to preserve on sign-out');// Debug log
             }
         }
     }, [user]);

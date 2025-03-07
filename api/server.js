@@ -138,7 +138,6 @@ app.post('/api/pay-on-delivery', async (req, res) => {
             });
         }
 
-        const totalInKobo = Math.round(parseFloat(total) * 100);
         const reference = generateUniqueReference('POD');
         const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
         const shipping = 5 * 10; // 5km at R10/km
@@ -182,7 +181,6 @@ app.post('/api/confirm-delivery', async (req, res) => {
         }
 
         const totalInKobo = Math.round(order.total * 100);
-        const subtotalInKobo = Math.round(order.subtotal * 100);
         const shippingInKobo = Math.round(order.shipping * 100);
 
         // Charge the authorization with split
@@ -240,7 +238,7 @@ app.post('/api/confirm-delivery', async (req, res) => {
     }
 });
 
-// New endpoint to save authorization code
+// Save authorization code
 app.post('/api/save-authorization', async (req, res) => {
     const { email, authorizationCode } = req.body;
 
@@ -327,19 +325,6 @@ app.post('/api/request-pod-refund', async (req, res) => {
 
     // In production, you might notify an admin via email/SMS or update a database
     res.json({ status: 'success', message: 'Pay on Delivery refund processing initiated. Admin notified for manual review.', data: { orderId, email, reason } });
-});
-
-app.get('/test', (req, res) => {
-    res.json({
-        status: 'success',
-        message: 'Server is up and running!',
-        timestamp: new Date().toISOString(),
-        paystackKeySet: !!PAYSTACK_SECRET_KEY // Check if env var is loaded
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;

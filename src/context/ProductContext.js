@@ -12,7 +12,6 @@ export const ProductProvider = ({ children }) => {
             if (uniqueProducts.length === 20) {
                 return uniqueProducts;
             }
-            console.warn('Invalid or duplicate products in localStorage, regenerating...');
             const newProducts = generateExactlyTwentyUniqueProducts();
             localStorage.setItem('freshCartProducts', JSON.stringify(newProducts));
             return newProducts;
@@ -37,7 +36,6 @@ export const ProductProvider = ({ children }) => {
     useEffect(() => {
         const uniqueProducts = Array.from(new Map(products.map(p => [p.id, p])).values());
         if (uniqueProducts.length !== 20) {
-            console.error('Products list should have exactly 20 unique items, regenerating...');
             const newProducts = generateExactlyTwentyUniqueProducts();
             setProducts(newProducts);
             localStorage.setItem('freshCartProducts', JSON.stringify(newProducts));
@@ -154,7 +152,7 @@ export const ProductProvider = ({ children }) => {
             removeFromCart,
             updateCartQuantity,
             clearCart,
-            setCartItems, // Added new method
+            setCartItems, 
             savedForLater,
             saveForLater,
             removeFromSaved,
@@ -202,7 +200,6 @@ function generateExactlyTwentyUniqueProducts() {
     }
 
     if (uniqueProducts.length < 20) {
-        console.error('Failed to generate 20 unique products, adding fallback unique products...');
         while (uniqueProducts.length < 20) {
             const baseName = groceryNames[Math.floor(Math.random() * groceryNames.length)];
             const variation = uniqueProducts.length + 1;
