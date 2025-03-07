@@ -7,13 +7,13 @@ import { useToast } from '../context/ToastContext';
 
 // Loading skeleton component
 const ProductSkeleton = () => (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse h-[300px] sm:h-[500px]">
-        <div className="h-40 sm:h-60 bg-gray-300"></div>
-        <div className="p-2 sm:p-4">
-            <div className="h-5 sm:h-6 bg-gray-300 rounded w-3/4 mb-1 sm:mb-2"></div>
-            <div className="h-4 sm:h-5 bg-gray-300 rounded w-1/2 mb-1 sm:mb-2"></div>
-            <div className="h-4 sm:h-5 bg-gray-300 rounded w-1/3 mb-2 sm:mb-4"></div>
-            <div className="h-8 sm:h-10 bg-gray-300 rounded"></div>
+    <div className="bg-white shadow-md rounded-lg overflow-hidden animate-pulse">
+        <div className="h-96 bg-gray-200"></div>
+        <div className="p-6">
+            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+            <div className="h-12 bg-gray-200 rounded"></div>
         </div>
     </div>
 );
@@ -25,15 +25,16 @@ const ProductPreview = () => {
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const product = allProducts.find((p) => p.id === parseInt(id));
     const { showToast } = useToast();
+
+    const product = allProducts.find((p) => p.id === parseInt(id));
 
     if (!product) {
         return (
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen bg-gray-50">
                 <Header />
-                <main className="flex-1 container mx-auto px-2 sm:px-4 py-6 sm:py-12">
-                    <p className="text-center text-gray-500 text-sm sm:text-base">Product not found.</p>
+                <main className="flex-1 container mx-auto px-4 py-12">
+                    <p className="text-center text-gray-500">Product not found.</p>
                 </main>
                 <Footer />
             </div>
@@ -52,16 +53,16 @@ const ProductPreview = () => {
     };
 
     const category = getCategory(product.name);
-
     const averageRating = parseFloat(getAverageRating(product.id)) || 4.5;
     const stars = Array.from({ length: 5 }, (_, index) => (
-        <span key={index} className={`text-yellow-400 ${index < Math.floor(averageRating) ? 'fill-current' : 'text-gray-300'}`}>
+        <span key={index} className={`text-lg ${index < Math.floor(averageRating) ? 'text-yellow-400' : 'text-gray-300'}`}>
             ★
         </span>
     ));
 
     const questions = ['Is this product organic?', 'What’s the shelf life?', 'Can I get this in bulk?'];
     const isTopPick = true;
+    const productReviews = reviews[product.id] || [];
 
     const relatedProducts = allProducts
         .filter((p) => p.category === category && p.id !== product.id)
@@ -88,177 +89,186 @@ const ProductPreview = () => {
         setTimeout(() => setIsSubmitting(false), 500);
     };
 
-    const productReviews = reviews[product.id] || [];
-
     return (
-        <div className="flex flex-col min-h-screen bg-gray-50">
+        <div className="flex flex-col min-h-screen bg-gray-100">
             <Header />
-            <main className="flex-1 container mx-auto px-2 sm:px-4 py-6 sm:py-12">
+            <main className="flex-1 container mx-auto px-4 py-6">
                 {isSubmitting ? (
                     <ProductSkeleton />
                 ) : (
                     <>
-                        <button
-                            onClick={() => navigate('/')}
-                            className="mb-2 px-3 sm:px-4 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm sm:text-base"
-                            aria-label="Back to Home"
-                        >
-                            ← Back to Home
-                        </button>
+                        {/* Breadcrumb */}
+                        <nav className="mb-6 text-sm text-gray-600">
+                            <ol className="flex items-center space-x-2">
+                                <li>
+                                    <button onClick={() => navigate('/')} className="hover:text-green-600">Home</button>
+                                </li>
+                                <li>/</li>
+                                <li className="capitalize">{category}</li>
+                                <li>/</li>
+                                <li className="text-gray-900">{product.name}</li>
+                            </ol>
+                        </nav>
 
-                        <div className="grid grid-cols-1 gap-4 sm:gap-8">
+                        {/* Main Product Section */}
+                        <div className="bg-white rounded-lg shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Product Image */}
-                            <div className="flex justify-center">
+                            <div className="flex justify-center items-center">
                                 <img
                                     src={product.image}
                                     alt={product.name}
-                                    className="w-full max-w-xs sm:max-w-lg h-auto object-contain rounded-lg shadow-lg"
+                                    className="w-full max-w-md h-auto object-contain rounded-lg"
                                     loading="lazy"
                                 />
                             </div>
 
                             {/* Product Details */}
-                            <div className="flex flex-col">
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 sm:mb-4">{product.name}</h1>
-                                <p className="text-gray-600 text-sm sm:text-base mb-2 sm:mb-4">{product.description}</p>
-                                <div className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">
-                                    <span className="text-blue-600">R{product.price.toFixed(2)} / {product.unit}</span>
+                            <div className="space-y-4">
+                                <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+                                <div className="flex items-center space-x-2">
+                                    {stars}
+                                    <span className="text-sm text-gray-600">({productReviews.length} reviews)</span>
                                 </div>
-                                <p className="text-gray-700 text-sm sm:text-base mb-2 sm:mb-4">
-                                    Quantity Available: {product.quantity}
+                                <p className="text-gray-600">{product.description}</p>
+                                <div className="text-3xl font-bold text-green-600">
+                                    R{product.price.toFixed(2)}
+                                    <span className="text-sm text-gray-500 font-normal"> /{product.unit}</span>
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                    Availability: {product.quantity > 0 && product.available ? (
+                                        <span className="text-green-600">In Stock ({product.quantity} available)</span>
+                                    ) : (
+                                        <span className="text-red-600">Out of Stock</span>
+                                    )}
                                 </p>
+
+                                {isTopPick && (
+                                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                        Top Pick in {category.charAt(0).toUpperCase() + category.slice(1)}
+                                    </span>
+                                )}
+
+                                <button
+                                    onClick={handleAddToCart}
+                                    className={`w-full py-3 mt-4 text-white rounded-md font-semibold transition-colors ${product.available && product.quantity > 0
+                                            ? 'bg-green-600 hover:bg-green-700'
+                                            : 'bg-gray-400 cursor-not-allowed'
+                                        }`}
+                                    disabled={!product.available || product.quantity === 0}
+                                >
+                                    {product.available && product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
+                                </button>
 
                                 {!product.available || product.quantity === 0 ? (
                                     <button
-                                        className="mt-2 w-full py-2 sm:py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors cursor-not-allowed text-sm sm:text-base"
+                                        className="w-full py-3 mt-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
                                         disabled
-                                        aria-label="Notify when available"
                                     >
                                         Notify Me When Available
                                     </button>
                                 ) : null}
 
-                                <div className="mb-2 sm:mb-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Reviews</h3>
-                                    <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-                                        {stars}
-                                        <span className="text-gray-600 text-xs sm:text-sm">({averageRating || '0.0'}/5) - {productReviews.length} review(s)</span>
-                                    </div>
-                                </div>
-
-                                <div className="mb-2 sm:mb-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Add Your Review</h3>
-                                    <form onSubmit={handleSubmitReview} className="space-y-2 sm:space-y-4">
-                                        <div>
-                                            <label htmlFor="rating" className="block text-gray-700 text-sm sm:text-base mb-1">Rating (1-5):</label>
-                                            <select
-                                                id="rating"
-                                                value={rating}
-                                                onChange={(e) => setRating(parseInt(e.target.value))}
-                                                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base"
-                                                aria-label="Select rating"
-                                            >
-                                                <option value="0">Select Rating</option>
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <option key={star} value={star}>{star} Star{star > 1 ? 's' : ''}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="comment" className="block text-gray-700 text-sm sm:text-base mb-1">Comment:</label>
-                                            <textarea
-                                                id="comment"
-                                                value={comment}
-                                                onChange={(e) => setComment(e.target.value)}
-                                                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 h-20 sm:h-24 resize-none text-sm sm:text-base"
-                                                placeholder="Write your review here..."
-                                                aria-label="Write a review"
-                                            />
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            className="px-4 sm:px-6 py-2 sm:py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:bg-gray-400 text-sm sm:text-base"
-                                            disabled={isSubmitting}
-                                            aria-label="Submit review"
-                                        >
-                                            {isSubmitting ? 'Submitting...' : 'Submit Review'}
-                                        </button>
-                                    </form>
-                                </div>
-
-                                {productReviews.length > 0 && (
-                                    <div className="mt-2 sm:mt-4">
-                                        <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Customer Reviews</h3>
-                                        <div className="space-y-2 sm:space-y-4">
-                                            {productReviews.map((review, index) => (
-                                                <div key={index} className="bg-gray-100 p-2 sm:p-4 rounded-md shadow-sm">
-                                                    <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                                                        {Array.from({ length: 5 }, (_, i) => (
-                                                            <span key={i} className={`text-yellow-400 ${i < Math.floor(review.rating) ? 'fill-current' : 'text-gray-300'}`}>
-                                                                ★
-                                                            </span>
-                                                        ))}
-                                                        <span className="text-gray-600 text-xs sm:text-sm">{new Date(review.date).toLocaleDateString()}</span>
-                                                    </div>
-                                                    <p className="text-gray-800 text-sm sm:text-base">{review.comment}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="mb-2 sm:mb-4">
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Questions</h3>
-                                    <ul className="list-disc list-inside text-gray-600 text-sm sm:text-base">
+                                {/* Questions */}
+                                <div className="mt-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Common Questions</h3>
+                                    <ul className="mt-2 space-y-1 text-gray-600 text-sm">
                                         {questions.map((q, index) => (
                                             <li key={index}>{q}</li>
                                         ))}
                                     </ul>
                                 </div>
-
-                                {isTopPick && (
-                                    <p className="text-green-600 font-semibold text-sm sm:text-base mb-2 sm:mb-4">
-                                        Top Pick in {category.charAt(0).toUpperCase() + category.slice(1)} Category
-                                    </p>
-                                )}
-
-                                <button
-                                    onClick={handleAddToCart}
-                                    className={`mt-2 w-full py-2 sm:py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors ${!product.available || product.quantity === 0 ? 'bg-gray-400 cursor-not-allowed' : ''} text-sm sm:text-base`}
-                                    disabled={!product.available || product.quantity === 0}
-                                    aria-label="Add to cart"
-                                >
-                                    {product.available && product.quantity > 0 ? 'Add to Cart' : 'Out of Stock'}
-                                </button>
                             </div>
                         </div>
 
-                        <div className="mt-6 sm:mt-12">
-                            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Related Products</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-6">
+                        {/* Reviews Section */}
+                        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
+
+                            {/* Add Review Form */}
+                            <div className="border-t pt-4 mt-4">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Write a Review</h3>
+                                <form onSubmit={handleSubmitReview} className="space-y-4">
+                                    <div>
+                                        <label htmlFor="rating" className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                                        <select
+                                            id="rating"
+                                            value={rating}
+                                            onChange={(e) => setRating(parseInt(e.target.value))}
+                                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        >
+                                            <option value="0">Select Rating</option>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <option key={star} value={star}>{star} Star{star > 1 ? 's' : ''}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">Your Review</label>
+                                        <textarea
+                                            id="comment"
+                                            value={comment}
+                                            onChange={(e) => setComment(e.target.value)}
+                                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
+                                            placeholder="Write your review here..."
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Existing Reviews */}
+                            {productReviews.length > 0 ? (
+                                <div className="mt-6 space-y-4">
+                                    {productReviews.map((review, index) => (
+                                        <div key={index} className="border-b pb-4 last:border-0">
+                                            <div className="flex items-center space-x-2 mb-2">
+                                                {Array.from({ length: 5 }, (_, i) => (
+                                                    <span key={i} className={`text-lg ${i < Math.floor(review.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>
+                                                        ★
+                                                    </span>
+                                                ))}
+                                                <span className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString()}</span>
+                                            </div>
+                                            <p className="text-gray-700">{review.comment}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-600 mt-4">No reviews yet. Be the first to review this product!</p>
+                            )}
+                        </div>
+
+                        {/* Related Products */}
+                        <div className="mt-8">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Related Products</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                 {relatedProducts.length > 0 ? (
                                     relatedProducts.map((relatedProduct) => (
                                         <div
                                             key={relatedProduct.id}
-                                            className="bg-white shadow-md rounded-lg p-2 sm:p-4 hover:shadow-lg transition cursor-pointer"
+                                            className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition cursor-pointer"
                                             onClick={() => navigate(`/product/${relatedProduct.id}`)}
-                                            role="button"
-                                            aria-label={`View ${relatedProduct.name}`}
                                         >
                                             <img
                                                 src={relatedProduct.image}
                                                 alt={relatedProduct.name}
-                                                className="w-full h-20 sm:h-32 object-cover rounded-t-lg"
+                                                className="w-full h-40 object-cover rounded-t-lg mb-2"
                                                 loading="lazy"
                                             />
-                                            <h4 className="text-base sm:text-lg font-semibold mt-1 sm:mt-2">{relatedProduct.name}</h4>
-                                            <p className="text-blue-600 font-bold text-sm sm:text-base">
-                                                R{relatedProduct.price.toFixed(2)} / {relatedProduct.unit}
+                                            <h4 className="text-lg font-semibold text-gray-900">{relatedProduct.name}</h4>
+                                            <p className="text-green-600 font-bold">
+                                                R{relatedProduct.price.toFixed(2)} /{relatedProduct.unit}
                                             </p>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-center text-gray-500 text-sm sm:text-base">No related products found.</p>
+                                    <p className="text-gray-600">No related products found.</p>
                                 )}
                             </div>
                         </div>
