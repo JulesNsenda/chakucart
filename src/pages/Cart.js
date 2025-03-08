@@ -1,11 +1,11 @@
 import React, { useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { ProductContext } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import CustomDialog from "../components/CustomDialog";
 import { Trash, ShoppingCart, ChevronDown, ChevronUp, Clock, ArrowRight } from "lucide-react";
+import useCustomNavigate from '../hooks/useCustomNavigate';
 
 const Cart = () => {
     const {
@@ -18,7 +18,7 @@ const Cart = () => {
         removeFromSaved,
         moveToCart,
     } = useContext(ProductContext);
-    const navigate = useNavigate();
+    const navigate = useCustomNavigate();
     const { isAuthenticated, hasRequiredDetails } = useAuth();
 
     // UI state
