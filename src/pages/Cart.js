@@ -72,13 +72,14 @@ const Cart = () => {
     };
 
     // Empty cart view
+    // In the empty cart view section of Cart.js
     if (cart.length === 0) {
         return (
             <div className="flex flex-col min-h-screen bg-gray-50">
                 <Header />
-                <main className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                    <ShoppingCart className="w-16 h-16 text-gray-400 mb-4" />
-                    <p className="text-gray-600 text-lg font-medium">Your cart is empty.</p>
+                <main className="flex-1 flex flex-col items-center justify-center text-center px-4 py-10 mb-12">
+                    <ShoppingCart className="w-16 h-16 text-gray-400 mb-6" />
+                    <p className="text-gray-600 text-lg font-medium mb-6">Your cart is empty.</p>
                     <button
                         onClick={() => navigate("/")}
                         className="mt-4 px-6 py-3 w-full max-w-xs bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300"
@@ -89,7 +90,7 @@ const Cart = () => {
 
                     {/* Display saved items if there are any */}
                     {savedForLater.length > 0 && (
-                        <div className="mt-8 w-full max-w-md">
+                        <div className="mt-12 w-full max-w-md">
                             <h2 className="text-lg font-medium text-gray-700 mb-4">Saved for Later ({savedForLater.length})</h2>
                             <div className="space-y-3">
                                 {savedForLater.map(item => (
