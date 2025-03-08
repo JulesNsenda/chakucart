@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -7,12 +7,13 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import axios from 'axios';
 import CustomDialog from '../components/CustomDialog';
+import useCustomNavigate from '../hooks/useCustomNavigate';
 
 const Dashboard = () => {
     const { cart, setCartItems } = useContext(ProductContext);
     const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
     const { showToast } = useToast();
-    const navigate = useNavigate();
+    const navigate = useCustomNavigate();
     const [ongoingOrders, setOngoingOrders] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
