@@ -23,9 +23,14 @@ const Dashboard = () => {
     const [showRefundDialog, setShowRefundDialog] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [refundReason, setRefundReason] = useState('');
+    const [showOrderDetails, setShowOrderDetails] = useState({});
     const API_BASE_URL = process.env.NODE_ENV === 'production'
         ? '/api'
         : 'http://localhost:5000/api';
+
+    const calculateTax = (subtotal) => {
+        return (parseFloat(subtotal) * 0.15).toFixed(2);
+    };
 
     useEffect(() => {
         if (!isAuthenticated || !user) {
@@ -33,12 +38,12 @@ const Dashboard = () => {
             return;
         }
         fetchOrdersFromLocalStorage();
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     useEffect(() => {
         if (cart.length > 0) {
             const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0).toFixed(2);
-            const tax = (parseFloat(subtotal) * 0.15).toFixed(2);
+            const tax = calculateTax(subtotal);
             const shipping = 50.00;
             const total = (parseFloat(subtotal) + parseFloat(tax) + shipping).toFixed(2);
 
@@ -47,7 +52,7 @@ const Dashboard = () => {
                 items: cart,
                 subtotal,
                 tax,
-                shipping,
+                shipping: shipping.toFixed(2),
                 total,
                 status: 'Pending Checkout',
                 paymentMethod: 'Pay Now',
@@ -61,6 +66,7 @@ const Dashboard = () => {
     }, [cart]);
 
     const fetchOrdersFromLocalStorage = () => {
+        if (!user) return;
         const orders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
         const userOrders = orders.filter(order => order.email === user.email);
         setAllOrders(userOrders);
@@ -95,7 +101,7 @@ const Dashboard = () => {
         setAllOrders(updatedOrders);
         showToast('Delivery confirmed!', 'success');
         setIsLoading(false);
-    }, [user.email, authorizationCode, navigate, showToast, allOrders]);
+    }, [user, authorizationCode, navigate, showToast, allOrders]);
 
     const handleReplaceOrder = (order) => {
         const newOrder = {
@@ -180,6 +186,13 @@ const Dashboard = () => {
         setRefundReason('');
     };
 
+    const toggleOrderDetails = (orderId) => {
+        setShowOrderDetails(prev => ({
+            ...prev,
+            [orderId]: !prev[orderId]
+        }));
+    };
+
     if (!isAuthenticated || !user) return null;
 
     const normalizeText = (text) => text.toLowerCase().trim();
@@ -206,72 +219,177 @@ const Dashboard = () => {
         setVisibleRefundedOrders(prev => prev + 2);
     };
 
+    const formatCurrency = (amount) => {
+        return parseFloat(amount).toFixed(2);
+    };
+
+    const renderOrderCard = (order, isCompleted = false, isRefunded = false) => {
+        const dynamicTax = calculateTax(order.subtotal);
+
+        return (
+            <div key={order.id} className="p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 bg-white border border-gray-200">
+                <div className="flex justify-between items-center mb-2">
+                    <div>
+                        <p className="text-gray-700 font-medium text-sm">Order #{order.id}</p>
+                        <p className="text-gray-600 text-xs">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'Pending' || order.status === 'Confirmed' ? 'bg-yellow-100 text-yellow-800' :
+                            order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
+                                order.status === 'Refunded' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                            {order.status}
+                        </span>
+                        <p className="text-gray-800 font-bold text-sm mt-1">R{formatCurrency(order.total)}</p>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => toggleOrderDetails(order.id)}
+                    className="w-full flex justify-between items-center py-1 px-2 bg-gray-100 rounded-md text-gray-700 text-sm my-2"
+                >
+                    <span>{showOrderDetails[order.id] ? 'Hide Details' : 'Show Details'}</span>
+                    <span>{showOrderDetails[order.id] ? '▲' : '▼'}</span>
+                </button>
+
+                {showOrderDetails[order.id] && (
+                    <div className="mt-3 border-t pt-3 space-y-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                            <p className="text-gray-600">Payment:</p>
+                            <p className="text-gray-800">{order.paymentMethod}</p>
+                            <p className="text-gray-600">Subtotal:</p>
+                            <p className="text-gray-800">R{formatCurrency(order.subtotal)}</p>
+                            <p className="text-gray-600">Tax (15%):</p>
+                            <p className="text-gray-800">R{dynamicTax}</p>
+                            <p className="text-gray-600">Delivery:</p>
+                            <p className="text-gray-800">R{formatCurrency(order.shipping)}</p>
+                            {order.refundReason && (
+                                <>
+                                    <p className="text-gray-600">Refund Reason:</p>
+                                    <p className="text-gray-800">{order.refundReason}</p>
+                                </>
+                            )}
+                            {order.refundStatus && (
+                                <>
+                                    <p className="text-gray-600">Refund Status:</p>
+                                    <p className="text-gray-800">{order.refundStatus}</p>
+                                </>
+                            )}
+                        </div>
+
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-800 mb-2">Order Items</h3>
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {order.items.map((item) => (
+                                    <div key={item.id} className="flex flex-col p-2 bg-gray-50 rounded-md text-xs">
+                                        <div className="font-medium text-gray-700 mb-1">{item.name}</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <span className="text-gray-600">Unit Price:</span>
+                                                <span className="text-gray-800 ml-1">R{formatCurrency(item.price)}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Qty:</span>
+                                                <span className="text-gray-800 ml-1">{item.cartQuantity || 1}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Total:</span>
+                                                <span className="text-gray-800 font-medium ml-1">
+                                                    R{formatCurrency(item.price * (item.cartQuantity || 1))}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {isCompleted && (
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                <button
+                                    onClick={() => handleReplaceOrder(order)}
+                                    className="py-2 px-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 text-xs font-medium"
+                                >
+                                    Replace Order
+                                </button>
+                                <button
+                                    onClick={() => openRefundDialog(order)}
+                                    className="py-2 px-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 text-xs font-medium"
+                                    disabled={order.status === 'Refunded'}
+                                >
+                                    {order.status === 'Refunded' ? 'Refunded' : 'Request Refund'}
+                                </button>
+                            </div>
+                        )}
+
+                        {(order.status === 'Pending' || order.status === 'Confirmed') && (
+                            <button
+                                onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
+                                className={`w-full mt-3 py-2 px-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-xs font-medium ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Processing...' : 'Confirm Delivery'}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
             <Header />
-            <main className="flex-1 p-2 sm:p-4">
-                <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-4 sm:p-6">
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Dashboard</h1>
+            <main className="flex-1 p-3">
+                <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-4">
+                    <h1 className="text-xl font-bold text-gray-800 mb-4">Dashboard</h1>
 
-                    {/* Search Bar for Orders */}
-                    <div className="mb-4 sm:mb-6">
+                    <div className="mb-4">
                         <input
                             type="text"
                             placeholder="Search by order number or item..."
-                            className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-sm sm:text-base"
+                            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             aria-label="Search orders by order number or item"
                         />
                     </div>
 
-                    {/* Tabs for Orders */}
-                    {/* Tabs for Orders */}
-                    <div className="mb-4 sm:mb-6">
-                        <nav className="flex overflow-x-auto sm:flex-wrap border-b border-gray-200 gap-2 whitespace-nowrap">
-                            {['ongoing', 'pending', 'completed', 'refunds'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-3 py-2 sm:px-4 sm:py-2 font-medium text-sm sm:text-base transition-all ${activeTab === tab ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-gray-800'
-                                        }`}
-                                >
-                                    {tab.charAt(0).toUpperCase() + tab.slice(1)} Orders
-                                </button>
-                            ))}
-                        </nav>
+                    <div className="mb-4 sticky top-0 bg-white z-10">
+                        <div className="overflow-x-auto -mx-4 px-4">
+                            <nav className="flex whitespace-nowrap border-b border-gray-200 gap-1">
+                                {['ongoing', 'pending', 'completed', 'refunds'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`px-3 py-2 font-medium text-sm transition-all ${activeTab === tab
+                                            ? 'border-b-2 border-blue-500 text-blue-600'
+                                            : 'text-gray-600 hover:text-gray-800'
+                                            }`}
+                                    >
+                                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
                     </div>
 
-
-                    {/* Order Content (Tabbed) */}
                     {activeTab === 'ongoing' && (
-                        <section className="mb-6 sm:mb-8">
+                        <section className="mb-6">
                             <h2 className="sr-only">Ongoing Orders</h2>
                             {ongoingOrders.length > 0 ? (
                                 <div className="space-y-4">
-                                    {ongoingOrders.map((order) => (
-                                        <div key={order.id} className="p-3 sm:p-4 bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                            <p className="text-gray-700 font-medium text-sm sm:text-base">Order #{order.id}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Items: {order.items.length}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Subtotal: R{order.subtotal}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Tax (15%): R{order.tax}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Delivery Fee: R{order.shipping}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">
-                                                Total: <span className="text-blue-600 font-bold">R{order.total}</span>
-                                            </p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Status: {order.status}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Paystack Reference: {order.paystackReference || 'N/A'}</p>
-                                            <p className="text-gray-600 text-xs sm:text-sm">Transaction ID: {order.transactionId || 'N/A'}</p>
-                                        </div>
-                                    ))}
+                                    {ongoingOrders.map((order) => renderOrderCard(order))}
                                 </div>
                             ) : (
-                                <p className="text-gray-500 font-medium text-sm sm:text-base">No ongoing orders at the moment.</p>
+                                <p className="text-gray-500 font-medium text-sm py-4 text-center">No ongoing orders at the moment.</p>
                             )}
                             {hasRequiredDetails && ongoingOrders.length > 0 && (
                                 <button
                                     onClick={() => navigate('/payment')}
-                                    className="mt-4 px-4 sm:px-6 py-2 sm:py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-sm sm:text-base"
+                                    className="mt-4 px-6 py-3 w-full bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-sm font-medium"
                                     aria-label="Proceed to payment"
                                 >
                                     Proceed to Payment
@@ -281,127 +399,36 @@ const Dashboard = () => {
                     )}
 
                     {activeTab === 'pending' && (
-                        <section className="mb-6 sm:mb-8">
+                        <section className="mb-6">
                             <h2 className="sr-only">Pending Deliveries</h2>
                             {isLoading ? (
-                                <p className="text-gray-600 text-sm sm:text-base">Loading pending orders...</p>
+                                <p className="text-gray-600 text-sm text-center py-4">Loading pending orders...</p>
                             ) : pendingOrders.length === 0 ? (
-                                <p className="text-gray-500 font-medium text-sm sm:text-base">No pending deliveries found.</p>
+                                <p className="text-gray-500 font-medium text-sm text-center py-4">No pending deliveries found.</p>
                             ) : (
                                 <div className="space-y-4">
-                                    {pendingOrders.map((order) => (
-                                        <div key={order.id} className="p-3 sm:p-4 bg-gray-100 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                            <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                                                {/* Order Summary */}
-                                                <div>
-                                                    <p className="text-gray-700 font-medium text-sm sm:text-base">Order #{order.id}</p>
-                                                    <p className="text-gray-600 text-xs sm:text-sm">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                                    <p className="text-gray-600 text-xs sm:text-sm">Payment Method: {order.paymentMethod}</p>
-                                                    <p className="text-gray-600 text-xs sm:text-sm">Total: R{order.total}</p>
-                                                    <p className="text-gray-600 text-xs sm:text-sm">Status: {order.status}</p>
-                                                    <p className="text-gray-600 text-xs sm:text-sm">Paystack Reference: {order.paystackReference || 'N/A'}</p>
-                                                    <p className="text-gray-600 text-xs sm:text-sm">Transaction ID: {order.transactionId || 'N/A'}</p>
-                                                </div>
-
-                                                {/* Order Items */}
-                                                <div>
-                                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Order Items</h3>
-                                                    <div className="space-y-2">
-                                                        {order.items.map((item) => (
-                                                            <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200">
-                                                                <span className="text-gray-700 text-xs sm:text-sm">{item.name}</span>
-                                                                <span className="text-gray-600 text-xs sm:text-sm">Qty: {item.cartQuantity || 1}</span>
-                                                                <span className="text-gray-800 font-medium text-xs sm:text-sm">
-                                                                    R{(item.price * (item.cartQuantity || 1)).toFixed(2)}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
-                                                className={`mt-4 py-2 sm:py-2 px-4 sm:px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-sm sm:text-base ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''
-                                                    }`}
-                                                disabled={isLoading}
-                                            >
-                                                {isLoading ? 'Processing...' : 'Confirm Delivery'}
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {pendingOrders.map((order) => renderOrderCard(order))}
                                 </div>
                             )}
                         </section>
                     )}
 
                     {activeTab === 'completed' && (
-                        <section className="mb-6 sm:mb-8">
+                        <section className="mb-6">
                             <h2 className="sr-only">Completed Orders</h2>
                             {completedOrders.length === 0 ? (
-                                <p className="text-gray-500 font-medium text-sm sm:text-base">No completed orders yet.</p>
+                                <p className="text-gray-500 font-medium text-sm text-center py-4">No completed orders yet.</p>
                             ) : (
                                 <>
                                     <div className="space-y-4">
-                                        {completedOrders.slice(0, visibleCompletedOrders).map((order) => (
-                                            <div key={order.id} className="p-3 sm:p-4 bg-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                                <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                                                    {/* Order Summary */}
-                                                    <div>
-                                                        <p className="text-gray-700 font-medium text-sm sm:text-base">Order #{order.id}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Payment Method: {order.paymentMethod}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Driver Cost: {order.shipping}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Total: R{order.total}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Status: {order.status}</p>
-                                                        {order.refundReason && (
-                                                            <p className="text-gray-600 text-xs sm:text-sm">Refund Reason: {order.refundReason}</p>
-                                                        )}
-                                                        {order.refundStatus && (
-                                                            <p className="text-gray-600 text-xs sm:text-sm">Refund Status: {order.refundStatus}</p>
-                                                        )}
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Transaction ID: {order.transactionId || 'N/A'}</p>
-                                                    </div>
-
-                                                    {/* Order Items */}
-                                                    <div>
-                                                        <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Order Items</h3>
-                                                        <div className="space-y-2">
-                                                            {order.items.map((item) => (
-                                                                <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200">
-                                                                    <span className="text-gray-700 text-xs sm:text-sm">{item.name}</span>
-                                                                    <span className="text-gray-600 text-xs sm:text-sm">Qty: {item.cartQuantity || 1}</span>
-                                                                    <span className="text-gray-800 font-medium text-xs sm:text-sm">
-                                                                        R{(item.price * (item.cartQuantity || 1)).toFixed(2)}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-4 flex flex-wrap gap-3 sm:gap-4">
-                                                    <button
-                                                        onClick={() => handleReplaceOrder(order)}
-                                                        className="py-2 sm:py-2 px-4 sm:px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 text-sm sm:text-base"
-                                                    >
-                                                        Replace Order
-                                                    </button>
-                                                    <button
-                                                        onClick={() => openRefundDialog(order)}
-                                                        className="py-2 sm:py-2 px-4 sm:px-4 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 text-sm sm:text-base"
-                                                        disabled={order.status === 'Refunded'}
-                                                    >
-                                                        {order.status === 'Refunded' ? 'Refunded' : 'Request Refund'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {completedOrders.slice(0, visibleCompletedOrders).map((order) =>
+                                            renderOrderCard(order, true)
+                                        )}
                                     </div>
                                     {visibleCompletedOrders < completedOrders.length && (
                                         <button
                                             onClick={loadMoreCompletedOrders}
-                                            className="mt-4 px-4 sm:px-6 py-2 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
+                                            className="mt-4 px-4 py-2 w-full bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm"
                                         >
                                             Load More
                                         </button>
@@ -412,56 +439,21 @@ const Dashboard = () => {
                     )}
 
                     {activeTab === 'refunds' && (
-                        <section className="mb-6 sm:mb-8">
+                        <section className="mb-6">
                             <h2 className="sr-only">Refunds</h2>
                             {refundedOrders.length === 0 ? (
-                                <p className="text-gray-500 font-medium text-sm sm:text-base">No refunds yet.</p>
+                                <p className="text-gray-500 font-medium text-sm text-center py-4">No refunds yet.</p>
                             ) : (
                                 <>
                                     <div className="space-y-4">
-                                        {refundedOrders.slice(0, visibleRefundedOrders).map((order) => (
-                                            <div key={order.id} className="p-3 sm:p-4 bg-gray-200 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                                                <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                                                    {/* Refund Summary */}
-                                                    <div>
-                                                        <p className="text-gray-700 font-medium text-sm sm:text-base">Order #{order.id}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Created At: {new Date(order.createdAt).toLocaleString()}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Payment Method: {order.paymentMethod}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Total: R{order.total}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Status: {order.status}</p>
-                                                        {order.refundReason && (
-                                                            <p className="text-gray-600 text-xs sm:text-sm">Refund Reason: {order.refundReason}</p>
-                                                        )}
-                                                        {order.refundStatus && (
-                                                            <p className="text-gray-600 text-xs sm:text-sm">Refund Status: {order.refundStatus}</p>
-                                                        )}
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Refunded At: {new Date(order.refundedAt).toLocaleString()}</p>
-                                                        <p className="text-gray-600 text-xs sm:text-sm">Transaction ID: {order.transactionId || 'N/A'}</p>
-                                                    </div>
-
-                                                    {/* Order Items */}
-                                                    <div>
-                                                        <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Order Items</h3>
-                                                        <div className="space-y-2">
-                                                            {order.items.map((item) => (
-                                                                <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200">
-                                                                    <span className="text-gray-700 text-xs sm:text-sm">{item.name}</span>
-                                                                    <span className="text-gray-600 text-xs sm:text-sm">Qty: {item.cartQuantity || 1}</span>
-                                                                    <span className="text-gray-800 font-medium text-xs sm:text-sm">
-                                                                        R{(item.price * (item.cartQuantity || 1)).toFixed(2)}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {refundedOrders.slice(0, visibleRefundedOrders).map((order) =>
+                                            renderOrderCard(order, false, true)
+                                        )}
                                     </div>
                                     {visibleRefundedOrders < refundedOrders.length && (
                                         <button
                                             onClick={loadMoreRefundedOrders}
-                                            className="mt-4 px-4 sm:px-6 py-2 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
+                                            className="mt-4 px-4 py-2 w-full bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm"
                                         >
                                             Load More
                                         </button>
@@ -471,10 +463,9 @@ const Dashboard = () => {
                         </section>
                     )}
 
-                    {/* Required Details Warning */}
                     {!hasRequiredDetails && (
-                        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-yellow-100 rounded-lg shadow-md">
-                            <p className="text-yellow-800 font-medium text-sm sm:text-base">
+                        <div className="mt-4 p-3 bg-yellow-100 rounded-lg shadow-md">
+                            <p className="text-yellow-800 font-medium text-sm">
                                 Please update your shipping address and payment details to proceed with checkout.{' '}
                                 <Link to="/account-settings" className="text-green-600 font-medium hover:text-green-700 underline">
                                     Update Details
@@ -483,21 +474,20 @@ const Dashboard = () => {
                         </div>
                     )}
 
-                    {/* Refund Confirmation Dialog */}
                     <CustomDialog
                         isOpen={showRefundDialog}
                         onConfirm={handleRefundRequest}
                         onCancel={closeRefundDialog}
                         message={
-                            <div className="w-full max-w-md mx-auto">
-                                <p className="text-gray-600 mb-4 text-sm sm:text-base">
+                            <div className="w-full mx-auto">
+                                <p className="text-gray-600 mb-4 text-sm">
                                     Are you sure you want to request a refund for Order #{selectedOrder?.id}?
                                 </p>
                                 <textarea
                                     value={refundReason}
                                     onChange={(e) => setRefundReason(e.target.value)}
                                     placeholder="Enter reason for refund (required)"
-                                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                     rows="3"
                                     required
                                 />
