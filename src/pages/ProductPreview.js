@@ -1,9 +1,10 @@
 import React, { useContext, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useToast } from '../context/ToastContext';
+import useCustomNavigate from '../hooks/useCustomNavigate';
 
 // Loading skeleton component
 const ProductSkeleton = () => (
@@ -21,7 +22,7 @@ const ProductSkeleton = () => (
 const ProductPreview = () => {
     const { id } = useParams();
     const { allProducts, addToCart, reviews, addReview, getAverageRating } = useContext(ProductContext);
-    const navigate = useNavigate();
+    const navigate = useCustomNavigate();
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);

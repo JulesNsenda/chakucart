@@ -1,30 +1,30 @@
 import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { Search, Filter, ChevronDown, X, ShoppingCart } from 'lucide-react';
 import { imageMap } from '../data/products';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import Footer from '../components/Footer';
-import { useToast } from '../context/ToastContext'; // Add this import
+import { useToast } from '../context/ToastContext';
+import useCustomNavigate from '../hooks/useCustomNavigate'; 
 
 // Updated Product Card component with preview functionality
 const ProductCard = ({ product }) => {
   const { addToCart } = useContext(ProductContext);
-  const { showToast } = useToast(); // Add useToast
-  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const navigate = useCustomNavigate(); 
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
     addToCart(product);
-    // Show toast only on desktop (width >= 768px)
     if (window.innerWidth >= 768) {
       showToast(`${product.name} added to cart!`);
     }
   };
 
   const handlePreview = () => {
-    navigate(`/product/${product.id}`);
+    navigate(`/product/${product.id}`); 
   };
 
   return (
@@ -99,7 +99,7 @@ const Home = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const productsRef = useRef(null);
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
-  const navigate = useNavigate();
+  const navigate = useCustomNavigate(); 
 
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
   const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
@@ -191,6 +191,11 @@ const Home = () => {
     paginate(1);
   };
 
+  const handlePaginate = (pageNumber) => {
+    paginate(pageNumber);
+    window.scrollTo(0, 0); 
+  };
+
   const indexOfLastItem = currentPage * itemsPerPageOptions;
   const indexOfFirstItem = indexOfLastItem - itemsPerPageOptions;
   const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
@@ -216,8 +221,7 @@ const Home = () => {
               <button
                 key={cat}
                 onClick={() => handleCategoryClick(cat)}
-                className={`flex flex-col items-center justify-center min-w-16 h-16 rounded-lg shadow-md transition-all ${category === cat ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-50'
-                  }`}
+                className={`flex flex-col items-center justify-center min-w-16 h-16 rounded-lg shadow-md transition-all ${category === cat ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-50'}`}
               >
                 <span className="text-xl">{categoryIcons[cat]}</span>
                 <span className="text-xs font-medium capitalize">{cat}</span>
@@ -361,9 +365,8 @@ const Home = () => {
                 {Array.from({ length: totalPages }, (_, i) => (
                   <button
                     key={i + 1}
-                    onClick={() => paginate(i + 1)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-full ${currentPage === i + 1 ? 'bg-white border shadow font-medium' : 'hover:bg-gray-100'
-                      }`}
+                    onClick={() => handlePaginate(i + 1)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full ${currentPage === i + 1 ? 'bg-white border shadow font-medium' : 'hover:bg-gray-100'}`}
                   >
                     {i + 1}
                   </button>
@@ -373,7 +376,7 @@ const Home = () => {
                 value={itemsPerPageOptions}
                 onChange={(e) => {
                   setItemsPerPageOptions(parseInt(e.target.value));
-                  paginate(1);
+                  handlePaginate(1);
                 }}
                 className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
               >
@@ -401,9 +404,7 @@ const Home = () => {
                     src="/paystack.svg"
                     alt="Paystack Logo"
                     className="w-32 h-10"
-                    onError={(e) => {
-                      e.target.src = '/paystack.png';
-                    }}
+                    onError={(e) => { e.target.src = '/paystack.png'; }}
                   />
                 </a>
               </div>
