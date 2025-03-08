@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,7 +24,7 @@ const Dashboard = () => {
     const [showRefundDialog, setShowRefundDialog] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [refundReason, setRefundReason] = useState('');
-    const [showOrderDetails, setShowOrderDetails] = useState({});
+    const prevCartRef = useRef(cart); // Track previous cart value
     const API_BASE_URL = process.env.NODE_ENV === 'production'
         ? '/api'
         : 'http://localhost:5000/api';
@@ -32,14 +32,6 @@ const Dashboard = () => {
     const calculateTax = (subtotal) => {
         return (parseFloat(subtotal) * 0.15).toFixed(2);
     };
-
-    useEffect(() => {
-        if (!isAuthenticated || !user) {
-            navigate('/sign-in');
-            return;
-        }
-        fetchOrdersFromLocalStorage();
-    }, [isAuthenticated, user, navigate]);
 
     useEffect(() => {
         if (cart.length > 0) {
@@ -66,12 +58,16 @@ const Dashboard = () => {
         }
     }, [cart]);
 
-    const fetchOrdersFromLocalStorage = () => {
+    const fetchOrdersFromLocalStorage = useCallback(() => {
         if (!user) return;
         const orders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
         const userOrders = orders.filter(order => order.email === user.email);
-        setAllOrders(userOrders);
-    };
+
+        setAllOrders(prevOrders => {
+            // Only update state if orders actually changed
+            return JSON.stringify(prevOrders) !== JSON.stringify(userOrders) ? userOrders : prevOrders;
+        });
+    }, [user]);
 
     const handleDeliveryConfirmation = useCallback(async (orderId, reference, paymentMethod) => {
         setIsLoading(true);
@@ -187,14 +183,13 @@ const Dashboard = () => {
         setRefundReason('');
     };
 
-    const toggleOrderDetails = (orderId) => {
-        setShowOrderDetails(prev => ({
-            ...prev,
-            [orderId]: !prev[orderId]
-        }));
-    };
-
-    if (!isAuthenticated || !user) return null;
+    useEffect(() => {
+        if (!isAuthenticated || !user) {
+            navigate('/sign-in');
+            return;
+        }
+        fetchOrdersFromLocalStorage();
+    }, [isAuthenticated, user, navigate, fetchOrdersFromLocalStorage]);
 
     const normalizeText = (text) => text.toLowerCase().trim();
     const filteredOrders = allOrders.filter(order => {
@@ -225,8 +220,6 @@ const Dashboard = () => {
     };
 
     const renderOrderCard = (order, isCompleted = false, isRefunded = false) => {
-        const dynamicTax = calculateTax(order.subtotal);
-
         return (
             <div key={order.id} className="p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 bg-white border border-gray-200">
                 <div className="flex justify-between items-center mb-2">
@@ -247,95 +240,51 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => toggleOrderDetails(order.id)}
-                    className="w-full flex justify-between items-center py-1 px-2 bg-gray-100 rounded-md text-gray-700 text-sm my-2"
-                >
-                    <span>{showOrderDetails[order.id] ? 'Hide Details' : 'Show Details'}</span>
-                    <span>{showOrderDetails[order.id] ? '▲' : '▼'}</span>
-                </button>
+                <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                        onClick={() => navigate(`/order-details/${order.id}`)}
+                        className="py-1 px-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all duration-200 text-xs font-medium"
+                    >
+                        View Details
+                    </button>
 
-                {showOrderDetails[order.id] && (
-                    <div className="mt-3 border-t pt-3 space-y-3">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                            <p className="text-gray-600">Payment:</p>
-                            <p className="text-gray-800">{order.paymentMethod}</p>
-                            <p className="text-gray-600">Subtotal:</p>
-                            <p className="text-gray-800">R{formatCurrency(order.subtotal)}</p>
-                            <p className="text-gray-600">Tax (15%):</p>
-                            <p className="text-gray-800">R{dynamicTax}</p>
-                            <p className="text-gray-600">Delivery:</p>
-                            <p className="text-gray-800">R{formatCurrency(order.shipping)}</p>
-                            {order.refundReason && (
-                                <>
-                                    <p className="text-gray-600">Refund Reason:</p>
-                                    <p className="text-gray-800">{order.refundReason}</p>
-                                </>
-                            )}
-                            {order.refundStatus && (
-                                <>
-                                    <p className="text-gray-600">Refund Status:</p>
-                                    <p className="text-gray-800">{order.refundStatus}</p>
-                                </>
-                            )}
-                        </div>
+                    {order.status === 'Pending Checkout' && hasRequiredDetails && (
+                        <button
+                            onClick={() => navigate('/payment')}
+                            className="py-1 px-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-xs font-medium"
+                        >
+                            Proceed to Payment
+                        </button>
+                    )}
 
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-800 mb-2">Order Items</h3>
-                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {order.items.map((item) => (
-                                    <div key={item.id} className="flex flex-col p-2 bg-gray-50 rounded-md text-xs">
-                                        <div className="font-medium text-gray-700 mb-1">{item.name}</div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <div>
-                                                <span className="text-gray-600">Unit Price:</span>
-                                                <span className="text-gray-800 ml-1">R{formatCurrency(item.price)}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600">Qty:</span>
-                                                <span className="text-gray-800 ml-1">{item.cartQuantity || 1}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600">Total:</span>
-                                                <span className="text-gray-800 font-medium ml-1">
-                                                    R{formatCurrency(item.price * (item.cartQuantity || 1))}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    {(order.status === 'Pending' || order.status === 'Confirmed') && (
+                        <button
+                            onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
+                            className={`py-1 px-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-xs font-medium ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Processing...' : 'Confirm Delivery'}
+                        </button>
+                    )}
 
-                        {isCompleted && (
-                            <div className="grid grid-cols-2 gap-2 mt-3">
-                                <button
-                                    onClick={() => handleReplaceOrder(order)}
-                                    className="py-2 px-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 text-xs font-medium"
-                                >
-                                    Replace Order
-                                </button>
-                                <button
-                                    onClick={() => openRefundDialog(order)}
-                                    className="py-2 px-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 text-xs font-medium"
-                                    disabled={order.status === 'Refunded'}
-                                >
-                                    {order.status === 'Refunded' ? 'Refunded' : 'Request Refund'}
-                                </button>
-                            </div>
-                        )}
-
-                        {(order.status === 'Pending' || order.status === 'Confirmed') && (
+                    {isCompleted && (
+                        <>
                             <button
-                                onClick={() => handleDeliveryConfirmation(order.id, order.paystackReference, order.paymentMethod)}
-                                className={`w-full mt-3 py-2 px-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-xs font-medium ${isLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
-                                disabled={isLoading}
+                                onClick={() => handleReplaceOrder(order)}
+                                className="py-1 px-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 text-xs font-medium"
                             >
-                                {isLoading ? 'Processing...' : 'Confirm Delivery'}
+                                Reorder
                             </button>
-                        )}
-                    </div>
-                )}
+                            <button
+                                onClick={() => openRefundDialog(order)}
+                                className="py-1 px-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200 text-xs font-medium"
+                                disabled={order.status === 'Refunded'}
+                            >
+                                {order.status === 'Refunded' ? 'Refunded' : 'Request Refund'}
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
         );
     };
@@ -386,15 +335,6 @@ const Dashboard = () => {
                                 </div>
                             ) : (
                                 <p className="text-gray-500 font-medium text-sm py-4 text-center">No ongoing orders at the moment.</p>
-                            )}
-                            {hasRequiredDetails && ongoingOrders.length > 0 && (
-                                <button
-                                    onClick={() => navigate('/payment')}
-                                    className="mt-4 px-6 py-3 w-full bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-sm font-medium"
-                                    aria-label="Proceed to payment"
-                                >
-                                    Proceed to Payment
-                                </button>
                             )}
                         </section>
                     )}

@@ -13,6 +13,7 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import { ProductProvider } from './context/ProductContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import OrderDetails from './pages/OrderDetails';
 
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               <Route path="/account-settings" element={<AccountSettings />} />
               <Route path="/payment" element={<Payment />} />
               <Route path="/order-confirmation" element={<OrderConfirmation />} />
+              <Route path="/order-details/:orderId" element={<OrderDetails />} />
             </Routes>
           </Router>
         </ProductProvider>
