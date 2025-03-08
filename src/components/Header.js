@@ -7,11 +7,21 @@ import { ShoppingCart, User, Menu, X, LogOut, Home, Info, Phone, Settings, Packa
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [cartAnimation, setCartAnimation] = useState(false); // State for cart animation
     const menuRef = useRef(null);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
     const { cart } = useContext(ProductContext);
     const { signOut, isAuthenticated } = useAuth();
+
+    // Trigger animation when cart length changes
+    useEffect(() => {
+        if (cart.length > 0) {
+            setCartAnimation(true);
+            const timer = setTimeout(() => setCartAnimation(false), 1000); // Animation lasts 1 second
+            return () => clearTimeout(timer);
+        }
+    }, [cart.length]);
 
     // Close menus when clicking outside
     useEffect(() => {
@@ -23,11 +33,8 @@ const Header = () => {
                 setIsDropdownOpen(false);
             }
         };
-
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const handleSignOut = () => {
@@ -54,9 +61,28 @@ const Header = () => {
                 <div className="flex items-center md:hidden space-x-4">
                     {/* Cart */}
                     <Link to="/cart" className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
-                        <ShoppingCart className="w-6 h-6" />
+                        <div className={`relative ${cartAnimation ? "animate-pulse" : ""}`}>
+                            <ShoppingCart className="w-6 h-6" />
+                            {cartAnimation && (
+                                <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+                                    {Array.from({ length: 6 }).map((_, i) => (
+                                        <span
+                                            key={i}
+                                            className="absolute w-1.5 h-1.5 bg-green-500 rounded-full animate-burst"
+                                            style={{
+                                                transform: `rotate(${i * 60}deg) translate(12px)`,
+                                                animationDelay: `${i * 0.05}s`,
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         {cart.length > 0 && (
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                            <span
+                                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center transition-transform duration-300 ease-in-out transform scale-100"
+                                style={cartAnimation ? { transform: "scale(1.2)" } : {}}
+                            >
                                 {cart.length}
                             </span>
                         )}
@@ -110,9 +136,28 @@ const Header = () => {
 
                     {/* Cart */}
                     <Link to="/cart" className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
-                        <ShoppingCart className="w-6 h-6" />
+                        <div className={`relative ${cartAnimation ? "animate-pulse" : ""}`}>
+                            <ShoppingCart className="w-6 h-6" />
+                            {cartAnimation && (
+                                <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+                                    {Array.from({ length: 6 }).map((_, i) => (
+                                        <span
+                                            key={i}
+                                            className="absolute w-1.5 h-1.5 bg-green-500 rounded-full animate-burst"
+                                            style={{
+                                                transform: `rotate(${i * 60}deg) translate(12px)`,
+                                                animationDelay: `${i * 0.05}s`,
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         {cart.length > 0 && (
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                            <span
+                                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center transition-transform duration-300 ease-in-out transform scale-100"
+                                style={cartAnimation ? { transform: "scale(1.2)" } : {}}
+                            >
                                 {cart.length}
                             </span>
                         )}
@@ -256,6 +301,24 @@ const Header = () => {
                     </div>
                 </div>
             )}
+
+            {/* Custom CSS for animations */}
+            <style jsx>{`
+                .animate-pulse {
+                    animation: pulse 0.5s ease-in-out;
+                }
+                .animate-burst {
+                    animation: burst 0.6s ease-out forwards;
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                }
+                @keyframes burst {
+                    0% { opacity: 1; transform: scale(1) translate(12px); }
+                    100% { opacity: 0; transform: scale(1.5) translate(20px); }
+                }
+            `}</style>
         </header>
     );
 };

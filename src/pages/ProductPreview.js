@@ -72,7 +72,10 @@ const ProductPreview = () => {
     const handleAddToCart = () => {
         if (product.available && product.quantity > 0) {
             addToCart(product);
-            showToast(`${product.name} added to cart!`);
+            // Show toast only on desktop (width >= 768px)
+            if (window.innerWidth >= 768) {
+                showToast(`${product.name} added to cart!`);
+            }
         }
     };
 
@@ -151,8 +154,8 @@ const ProductPreview = () => {
                                 <button
                                     onClick={handleAddToCart}
                                     className={`w-full py-3 mt-4 text-white rounded-md font-semibold transition-colors ${product.available && product.quantity > 0
-                                            ? 'bg-green-600 hover:bg-green-700'
-                                            : 'bg-gray-400 cursor-not-allowed'
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-gray-400 cursor-not-allowed'
                                         }`}
                                     disabled={!product.available || product.quantity === 0}
                                 >

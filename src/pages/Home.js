@@ -6,15 +6,21 @@ import { imageMap } from '../data/products';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import Footer from '../components/Footer';
+import { useToast } from '../context/ToastContext'; // Add this import
 
 // Updated Product Card component with preview functionality
 const ProductCard = ({ product }) => {
   const { addToCart } = useContext(ProductContext);
+  const { showToast } = useToast(); // Add useToast
   const navigate = useNavigate();
 
   const handleAddToCart = (e) => {
-    e.stopPropagation(); // Prevent card click from triggering when clicking add to cart
+    e.stopPropagation();
     addToCart(product);
+    // Show toast only on desktop (width >= 768px)
+    if (window.innerWidth >= 768) {
+      showToast(`${product.name} added to cart!`);
+    }
   };
 
   const handlePreview = () => {
