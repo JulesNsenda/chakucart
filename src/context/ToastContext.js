@@ -21,7 +21,7 @@ export const ToastProvider = ({ children }) => {
                 return 'bg-yellow-500';
             case 'info':
             default:
-                return 'bg-blue-500';
+                return 'bg-green-600'; 
         }
     };
 
