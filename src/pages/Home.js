@@ -384,12 +384,22 @@ const Home = () => {
             <div className="mt-12 text-center">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Payment Methods Supported</h3>
               <div className="flex justify-center gap-6">
-                <span className="inline-flex items-center px-4 py-2 bg-gray-100 rounded-md text-gray-700">
-                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18"></path>
-                  </svg>
-                  Paystack
-                </span>
+                <a
+                  href="https://paystack.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-5 py-3 bg-gray-100 rounded-md text-gray-700 hover:bg-gray-200 transition-colors duration-200"
+                  aria-label="Visit Paystack website"
+                >
+                  <img
+                    src="/paystack.svg"
+                    alt="Paystack Logo"
+                    className="w-32 h-10"
+                    onError={(e) => {
+                      e.target.src = '/paystack.png';
+                    }}
+                  />
+                </a>
               </div>
             </div>
           )}
