@@ -2,12 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-
+const path = require('path')
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, 'build')));
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
@@ -325,6 +327,11 @@ app.post('/api/request-pod-refund', async (req, res) => {
 
     // In production, you might notify an admin via email/SMS or update a database
     res.json({ status: 'success', message: 'Pay on Delivery refund processing initiated. Admin notified for manual review.', data: { orderId, email, reason } });
+});
+
+// Catch-all route for SPA: Serve index.html for all non-API routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 module.exports = app;
