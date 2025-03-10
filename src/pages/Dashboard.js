@@ -14,7 +14,7 @@ const Dashboard = () => {
     const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
     const { showToast } = useToast();
     const navigate = useCustomNavigate();
-    const [searchParams, setSearchParams] = useSearchParams(); 
+    const [searchParams, setSearchParams] = useSearchParams();
     const [ongoingOrders, setOngoingOrders] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +25,6 @@ const Dashboard = () => {
     const [showRefundDialog, setShowRefundDialog] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [refundReason, setRefundReason] = useState('');
-    const prevCartRef = useRef(cart); // Track previous cart value
     const API_BASE_URL = process.env.NODE_ENV === 'production'
         ? '/api'
         : 'http://localhost:5000/api';
@@ -72,7 +71,6 @@ const Dashboard = () => {
         const userOrders = orders.filter(order => order.email === user.email);
 
         setAllOrders(prevOrders => {
-            // Only update state if orders actually changed
             return JSON.stringify(prevOrders) !== JSON.stringify(userOrders) ? userOrders : prevOrders;
         });
     }, [user]);
@@ -106,6 +104,7 @@ const Dashboard = () => {
         setAllOrders(updatedOrders);
         showToast('Delivery confirmed!', 'success');
         setIsLoading(false);
+        navigate('/dashboard?tab=completed'); 
     }, [user, authorizationCode, navigate, showToast, allOrders]);
 
     const handleReplaceOrder = (order) => {
