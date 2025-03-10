@@ -16,7 +16,7 @@ const OrderConfirmation = () => {
         const latestOrder = getLatestOrder();
         setOrder(latestOrder);
         if (!latestOrder) {
-            navigate('/dashboard');
+            navigate('/dashboard?tab=pending'); // Redirect to Dashboard with pending tab
         }
     }, [navigate]);
 
@@ -62,7 +62,7 @@ const OrderConfirmation = () => {
                         </div>
                     </div>
                     <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/dashboard?tab=pending')}
                         className="mt-4 px-4 sm:px-6 py-2 sm:py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-300 text-sm sm:text-base"
                     >
                         Back to Dashboard

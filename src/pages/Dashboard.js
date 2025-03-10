@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -14,6 +14,7 @@ const Dashboard = () => {
     const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
     const { showToast } = useToast();
     const navigate = useCustomNavigate();
+    const [searchParams, setSearchParams] = useSearchParams(); 
     const [ongoingOrders, setOngoingOrders] = useState([]);
     const [allOrders, setAllOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +33,13 @@ const Dashboard = () => {
     const calculateTax = (subtotal) => {
         return (parseFloat(subtotal) * 0.15).toFixed(2);
     };
+
+    useEffect(() => {
+        const tabFromUrl = searchParams.get('tab');
+        if (tabFromUrl && ['ongoing', 'pending', 'completed', 'refunds'].includes(tabFromUrl)) {
+            setActiveTab(tabFromUrl);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         if (cart.length > 0) {
