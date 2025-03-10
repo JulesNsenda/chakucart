@@ -160,7 +160,7 @@ const AccountSettings = () => {
                     {error && <p className="text-red-500 mb-2 sm:mb-4 text-sm sm:text-base">{error}</p>}
                     {detailsUpdated && !isCardLinked && (
                         <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4">
-                            <p className="text-blue-700">Details updated! Please link your card to continue.</p>
+                            <p className="text-blue-700">Details updated! Please link your card to use Pay on Delivery.</p>
                         </div>
                     )}
                     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
