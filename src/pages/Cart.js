@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import CustomDialog from "../components/CustomDialog";
-import { Trash, ShoppingCart, ChevronDown, ChevronUp, Clock, ArrowRight } from "lucide-react";
+import { Trash, ShoppingCart, ChevronDown, ChevronUp, Clock, ArrowRight, Plus, Minus } from "lucide-react";
 import useCustomNavigate from '../hooks/useCustomNavigate';
 
 const Cart = () => {
@@ -22,10 +22,10 @@ const Cart = () => {
     const { isAuthenticated, hasRequiredDetails } = useAuth();
 
     // UI state
-    const [showSummary, setShowSummary] = useState(true); // Always show on desktop
+    const [showSummary, setShowSummary] = useState(false); // For mobile view toggle
     const [showSavedItems, setShowSavedItems] = useState(true);
 
-    // Dialog state
+    // Dialog state (still present but unused)
     const [showRemoveDialog, setShowRemoveDialog] = useState(false);
     const [showClearDialog, setShowClearDialog] = useState(false);
     const [itemToRemove, setItemToRemove] = useState(null);
@@ -72,7 +72,6 @@ const Cart = () => {
     };
 
     // Empty cart view
-    // In the empty cart view section of Cart.js
     if (cart.length === 0) {
         return (
             <div className="flex flex-col min-h-screen bg-gray-50">
@@ -109,6 +108,7 @@ const Cart = () => {
                                         <button
                                             onClick={() => moveToCart(item.id)}
                                             className="text-green-600 hover:text-green-700"
+                                            aria-label="Move to cart"
                                         >
                                             <ArrowRight className="w-5 h-5" />
                                         </button>
@@ -181,66 +181,122 @@ const Cart = () => {
             <Header />
             <main className="flex-1 p-4">
                 <div className="max-w-6xl mx-auto">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Your Cart</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 mb-4">Your Cart</h1>
+
+                    {/* Mobile Order Summary Toggle */}
+                    <div className="lg:hidden mb-4">
+                        <button
+                            onClick={() => setShowSummary(!showSummary)}
+                            className="w-full p-3 bg-white shadow rounded-lg flex justify-between items-center"
+                        >
+                            <span className="font-medium text-gray-800">Order Summary: R{total}</span>
+                            {showSummary ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </button>
+
+                        {/* Mobile Summary Dropdown */}
+                        {showSummary && (
+                            <div className="mt-2 p-4 bg-white shadow rounded-lg">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-gray-600">Items ({itemCount})</p>
+                                        <p className="text-gray-800 font-semibold">R{subtotal}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-gray-600">Tax (15%)</p>
+                                        <p className="text-gray-800 font-semibold">R{tax}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-gray-600">Shipping</p>
+                                        <p className="text-gray-800 font-semibold">R{shipping}</p>
+                                    </div>
+                                    <div className="flex justify-between text-lg font-bold mt-2 pt-2 border-t">
+                                        <p>Total</p>
+                                        <p className="text-blue-600">R{total}</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <button
+                                        onClick={handleCheckout}
+                                        className="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 font-medium"
+                                    >
+                                        Checkout
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Desktop Layout - Two Column */}
-                    <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex flex-col lg:flex-row gap-4">
                         {/* Cart Items Column */}
-                        <div className="lg:w-2/3 bg-white shadow-md rounded-lg p-6">
+                        <div className="lg:w-2/3 bg-white shadow-md rounded-lg p-4">
                             {/* Cart Items */}
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {cart.map((item) => {
                                     const itemTotal = (item.price * (item.cartQuantity || 1)).toFixed(2);
                                     return (
-                                        <div key={item.id} className="p-4 border rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div key={item.id} className="p-3 border rounded-lg">
                                             {/* Product Image and Details */}
-                                            <div className="flex items-center gap-4 flex-grow">
+                                            <div className="flex items-center gap-3">
                                                 <img
                                                     src={item.image}
                                                     alt={item.name}
                                                     className="w-16 h-16 object-cover rounded-md"
                                                     loading="lazy"
                                                 />
-                                                <div>
+                                                <div className="flex-1">
                                                     <h2 className="text-base font-semibold text-gray-800">{item.name}</h2>
                                                     <p className="text-gray-600 text-sm">R{item.price.toFixed(2)} / {item.unit}</p>
                                                 </div>
-                                            </div>
-
-                                            {/* Quantity and Item Total */}
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center">
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        value={item.cartQuantity || 1}
-                                                        onChange={(e) => updateCartQuantity(item.id, parseInt(e.target.value) || 1)}
-                                                        className="w-16 p-2 border border-gray-300 rounded-md text-center"
-                                                        aria-label={`Quantity for ${item.name}`}
-                                                    />
-                                                </div>
-                                                <div className="text-right min-w-24">
-                                                    <p className="text-sm text-gray-500">Total</p>
+                                                <div className="text-right">
                                                     <p className="font-bold text-lg">R{itemTotal}</p>
                                                 </div>
                                             </div>
 
-                                            {/* Action Buttons */}
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleRemove(item.id)}
-                                                    className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center gap-1"
-                                                    aria-label={`Remove ${item.name} from cart`}
-                                                >
-                                                    <Trash className="w-4 h-4" /> Remove
-                                                </button>
-                                                <button
-                                                    onClick={() => saveForLater(item.id)}
-                                                    className="px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 flex items-center gap-1"
-                                                    aria-label={`Save ${item.name} for later`}
-                                                >
-                                                    <Clock className="w-4 h-4" /> Save for Later
-                                                </button>
+                                            {/* Mobile-friendly controls */}
+                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                                {/* Quantity Selector */}
+                                                <div className="flex items-center border rounded-md">
+                                                    <button
+                                                        onClick={() => updateCartQuantity(item.id, Math.max(1, (item.cartQuantity || 1) - 1))}
+                                                        className="p-2 text-gray-600 hover:bg-gray-100"
+                                                        aria-label="Decrease quantity"
+                                                    >
+                                                        <Minus className="w-4 h-4" />
+                                                    </button>
+                                                    <span className="px-4 py-1 text-center min-w-14">
+                                                        {item.cartQuantity || 1}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => updateCartQuantity(item.id, (item.cartQuantity || 1) + 1)}
+                                                        className="p-2 text-gray-600 hover:bg-gray-100"
+                                                        aria-label="Increase quantity"
+                                                    >
+                                                        <Plus className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Action buttons - icons with accessible labels on mobile, text on desktop */}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => saveForLater(item.id)}
+                                                        className="p-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 md:px-3 md:py-2"
+                                                        aria-label="Save for later"
+                                                        title="Save for later"
+                                                    >
+                                                        <Clock className="w-5 h-5 md:w-4 md:h-4" />
+                                                        <span className="hidden md:inline md:ml-1">Save for Later</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => removeFromCart(item.id)}
+                                                        className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 md:px-3 md:py-2"
+                                                        aria-label="Remove item"
+                                                        title="Remove item"
+                                                    >
+                                                        <Trash className="w-5 h-5 md:w-4 md:h-4" />
+                                                        <span className="hidden md:inline md:ml-1">Remove</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -249,9 +305,9 @@ const Cart = () => {
 
                             {/* Saved For Later Items */}
                             {savedForLater.length > 0 && (
-                                <div className="mt-8 border-t pt-6">
+                                <div className="mt-6 border-t pt-4">
                                     <button
-                                        className="flex items-center justify-between w-full text-gray-700 font-medium text-base mb-4"
+                                        className="flex items-center justify-between w-full text-gray-700 font-medium text-base mb-3"
                                         onClick={() => setShowSavedItems(!showSavedItems)}
                                     >
                                         Saved for Later ({savedForLater.length})
@@ -261,32 +317,36 @@ const Cart = () => {
                                     {showSavedItems && (
                                         <div className="space-y-3">
                                             {savedForLater.map((item) => (
-                                                <div key={item.id} className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-center">
-                                                    <div className="flex items-center gap-4">
+                                                <div key={item.id} className="p-3 border rounded-lg">
+                                                    <div className="flex items-center gap-3">
                                                         <img
                                                             src={item.image}
                                                             alt={item.name}
                                                             className="w-12 h-12 object-cover rounded-md"
                                                             loading="lazy"
                                                         />
-                                                        <div>
+                                                        <div className="flex-1">
                                                             <h2 className="text-sm font-medium text-gray-800">{item.name}</h2>
                                                             <p className="text-gray-600 text-xs">R{item.price.toFixed(2)}</p>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex gap-2 mt-3 sm:mt-0">
-                                                        <button
-                                                            onClick={() => moveToCart(item.id)}
-                                                            className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600"
-                                                        >
-                                                            Move to Cart
-                                                        </button>
-                                                        <button
-                                                            onClick={() => removeFromSaved(item.id)}
-                                                            className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600"
-                                                        >
-                                                            Remove
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => moveToCart(item.id)}
+                                                                className="p-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                                                                aria-label="Move to cart"
+                                                                title="Move to cart"
+                                                            >
+                                                                <ArrowRight className="w-5 h-5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => removeFromSaved(item.id)}
+                                                                className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                                                aria-label="Remove saved item"
+                                                                title="Remove saved item"
+                                                            >
+                                                                <Trash className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -296,9 +356,9 @@ const Cart = () => {
                             )}
                         </div>
 
-                        {/* Cart Summary Column */}
-                        <div className="lg:w-1/3">
-                            <div className="bg-white shadow-md rounded-lg p-6 sticky top-4">
+                        {/* Cart Summary Column - Desktop only */}
+                        <div className="hidden lg:block lg:w-1/3">
+                            <div className="bg-white shadow-md rounded-lg p-5 sticky top-4">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">Cart Summary</h2>
 
                                 <div className="space-y-3">
@@ -328,7 +388,7 @@ const Cart = () => {
                                         Proceed to Checkout
                                     </button>
                                     <button
-                                        onClick={handleClear}
+                                        onClick={() => clearCart()}
                                         className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium"
                                     >
                                         Clear Cart
@@ -337,22 +397,26 @@ const Cart = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Mobile Checkout and Clear Buttons */}
+                    <div className="lg:hidden bg-white shadow-md rounded-lg p-4 mt-4 sticky bottom-4">
+                        <div className="space-y-2">
+                            <button
+                                onClick={handleCheckout}
+                                className="w-full px-4 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 font-medium"
+                            >
+                                Checkout • R{total}
+                            </button>
+                            <button
+                                onClick={() => clearCart()}
+                                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium text-sm"
+                            >
+                                Clear Cart
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Custom Dialogs */}
-                <CustomDialog
-                    isOpen={showRemoveDialog}
-                    onConfirm={confirmRemove}
-                    onCancel={cancelAction}
-                    message="Are you sure you want to remove this item from your cart?"
-                />
-
-                <CustomDialog
-                    isOpen={showClearDialog}
-                    onConfirm={confirmClear}
-                    onCancel={cancelAction}
-                    message="Are you sure you want to clear your cart?"
-                />
             </main>
             <Footer />
         </div>
