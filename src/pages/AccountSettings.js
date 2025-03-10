@@ -11,6 +11,7 @@ const AccountSettings = () => {
     const [address, setAddress] = useState(user?.address || '');
     const [cardNumber, setCardNumber] = useState(user?.cardNumber || '');
     const [isLinking, setIsLinking] = useState(false);
+    const [detailsUpdated, setDetailsUpdated] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const API_BASE_URL = process.env.NODE_ENV === 'production'
@@ -32,11 +33,16 @@ const AccountSettings = () => {
         };
 
         updateUserDetails(updatedUser);
+        setDetailsUpdated(true);
 
-        setTimeout(() => {
-            navigate('/dashboard');
-            toast.success('Account details updated successfully!');
-        }, 0);
+        if (isCardLinked) {
+            setTimeout(() => {
+                navigate('/dashboard');
+                toast.success('Account details updated successfully!');
+            }, 0);
+        } else {
+            toast.success('Account details updated successfully! Please link your card before continuing.');
+        }
     }, [address, cardNumber, isCardLinked, user, updateUserDetails, navigate]);
 
     const handleLinkOrVerifyCard = useCallback(async () => {
@@ -66,6 +72,9 @@ const AccountSettings = () => {
                         setTimeout(() => {
                             toast.success('Card linked and verified successfully!');
                             setIsLinking(false);
+                            if (detailsUpdated) {
+                                navigate('/dashboard');
+                            }
                         }, 0);
                     }).catch((error) => {
                         setTimeout(() => {
@@ -90,7 +99,7 @@ const AccountSettings = () => {
                 setIsLinking(false);
             }, 0);
         }
-    }, [user.email, cardNumber, setIsLinking, setError, toast]);
+    }, [user.email, cardNumber, setIsLinking, setError, toast, detailsUpdated, navigate]);
 
     const verifyAuthorization = useCallback(async (reference) => {
         try {
@@ -117,6 +126,10 @@ const AccountSettings = () => {
                         updateUserDetails(updatedUser);
                         toast.success('Card linked and verified successfully!');
                         setIsLinking(false);
+
+                        if (detailsUpdated) {
+                            navigate('/dashboard');
+                        }
                     }, 0);
                 } else {
                     throw new Error('No authorization code found in Paystack response.');
@@ -131,7 +144,7 @@ const AccountSettings = () => {
                 setIsLinking(false);
             }, 0);
         }
-    }, [user.email, updateUserDetails, setIsLinking, setError, toast]);
+    }, [user.email, updateUserDetails, setIsLinking, setError, toast, detailsUpdated, navigate]);
 
     if (!isAuthenticated) {
         setTimeout(() => navigate('/sign-in'), 0);
@@ -145,6 +158,11 @@ const AccountSettings = () => {
                 <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-3 sm:p-6">
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-6">Account Settings</h1>
                     {error && <p className="text-red-500 mb-2 sm:mb-4 text-sm sm:text-base">{error}</p>}
+                    {detailsUpdated && !isCardLinked && (
+                        <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4">
+                            <p className="text-blue-700">Details updated! Please link your card to continue.</p>
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                         <div>
                             <label htmlFor="address" className="block text-gray-700 mb-1 text-sm sm:text-base">Shipping Address</label>
@@ -179,7 +197,7 @@ const AccountSettings = () => {
                         >
                             {isLinking ? 'Processing...' : 'Update Details'}
                         </button>
-                        {!isCardLinked && (
+                        {(!isCardLinked) && (
                             <button
                                 type="button"
                                 onClick={handleLinkOrVerifyCard}
