@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 
 const AccountSettings = () => {
-    const { user, updateUserDetails, isAuthenticated, isCardLinked } = useAuth();
+    const { user, updateUserDetails, isAuthenticated, isCardLinked, loading } = useAuth();
     const [address, setAddress] = useState(user?.address || '');
     const [cardNumber, setCardNumber] = useState(user?.cardNumber || '');
     const [isLinking, setIsLinking] = useState(false);
@@ -46,6 +46,11 @@ const AccountSettings = () => {
     }, [address, cardNumber, isCardLinked, user, updateUserDetails, navigate]);
 
     const handleLinkOrVerifyCard = useCallback(async () => {
+        if (!user) {
+            setError('User session not found. Please log in again.');
+            return;
+        }
+
         if (!cardNumber) {
             setError('Please enter a card number before linking.');
             return;
@@ -102,6 +107,11 @@ const AccountSettings = () => {
     }, [user.email, cardNumber, setIsLinking, setError, toast, detailsUpdated, navigate]);
 
     const verifyAuthorization = useCallback(async (reference) => {
+        if (!user) {
+            setError('User session not found. Please log in again.');
+            return;
+        }
+
         try {
             const response = await axios.post(`${API_BASE_URL}/verify-transaction`, {
                 reference,
@@ -145,6 +155,10 @@ const AccountSettings = () => {
             }, 0);
         }
     }, [user.email, updateUserDetails, setIsLinking, setError, toast, detailsUpdated, navigate]);
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    }
 
     if (!isAuthenticated) {
         setTimeout(() => navigate('/sign-in'), 0);
