@@ -3,7 +3,6 @@ import { ProductContext } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import CustomDialog from "../components/CustomDialog";
 import { Trash, ShoppingCart, ChevronDown, ChevronUp, Clock, ArrowRight, Plus, Minus } from "lucide-react";
 import useCustomNavigate from '../hooks/useCustomNavigate';
 
@@ -24,11 +23,6 @@ const Cart = () => {
     // UI state
     const [showSummary, setShowSummary] = useState(false); // For mobile view toggle
     const [showSavedItems, setShowSavedItems] = useState(true);
-
-    // Dialog state (still present but unused)
-    const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-    const [showClearDialog, setShowClearDialog] = useState(false);
-    const [itemToRemove, setItemToRemove] = useState(null);
 
     // Location state for shipping calculation
     const [location] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town
@@ -129,39 +123,6 @@ const Cart = () => {
     const shipping = (distance * 10).toFixed(2); // R10 per kilometer, as in original
     const total = (parseFloat(subtotal) + parseFloat(tax) + parseFloat(shipping)).toFixed(2);
     const itemCount = cart.reduce((sum, item) => sum + (item.cartQuantity || 1), 0);
-
-    // Handle remove item
-    const handleRemove = (productId) => {
-        setItemToRemove(productId);
-        setShowRemoveDialog(true);
-    };
-
-    // Handle clear cart
-    const handleClear = () => {
-        setShowClearDialog(true);
-    };
-
-    // Confirm remove item
-    const confirmRemove = () => {
-        if (itemToRemove) {
-            removeFromCart(itemToRemove);
-            setShowRemoveDialog(false);
-            setItemToRemove(null);
-        }
-    };
-
-    // Confirm clear cart
-    const confirmClear = () => {
-        clearCart();
-        setShowClearDialog(false);
-    };
-
-    // Cancel dialog action
-    const cancelAction = () => {
-        setShowRemoveDialog(false);
-        setShowClearDialog(false);
-        setItemToRemove(null);
-    };
 
     // Handle checkout with auth check
     const handleCheckout = () => {
