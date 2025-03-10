@@ -1,5 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"; // Added useLocation
 import { ProductContext } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import useCustomNavigate from "../hooks/useCustomNavigate";
@@ -14,6 +14,7 @@ const Header = () => {
     const navigate = useCustomNavigate();
     const { cart } = useContext(ProductContext);
     const { signOut, isAuthenticated } = useAuth();
+    const location = useLocation(); 
 
     // Trigger animation when cart length changes
     useEffect(() => {
@@ -45,11 +46,20 @@ const Header = () => {
         setIsDropdownOpen(false);
     };
 
+    const handleNavigation = (path) => {
+        if (location.pathname !== path) {
+            navigate(path);
+        }
+
+        setIsMenuOpen(false);
+        setIsDropdownOpen(false);
+    };
+
     return (
         <header className="sticky top-0 z-50 bg-white shadow-md">
             <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                 {/* Logo */}
-                <Link to="/" onClick={() => navigate("/")} className="flex items-center space-x-2" aria-label="Home">
+                <Link to="/" onClick={() => handleNavigation("/")} className="flex items-center space-x-2" aria-label="Home">
                     <img
                         src={window.innerWidth > 768 ? "/logo512.png" : "/logo192.png"}
                         alt="ChakuCart Logo"
@@ -61,7 +71,7 @@ const Header = () => {
                 {/* Mobile Icons: Cart & Sign In/User Menu */}
                 <div className="flex items-center md:hidden space-x-4">
                     {/* Cart */}
-                    <Link to="/cart" onClick={() => navigate("/cart")} className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
+                    <Link to="/cart" onClick={() => handleNavigation("/cart")} className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
                         <div className={`relative ${cartAnimation ? "animate-pulse" : ""}`}>
                             <ShoppingCart className="w-6 h-6" />
                             {cartAnimation && (
@@ -101,12 +111,12 @@ const Header = () => {
 
                 {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center space-x-6">
-                    <Link to="/" onClick={() => navigate("/")} className="text-gray-700 hover:text-green-600 text-lg">Home</Link>
-                    <Link to="/about" onClick={() => navigate("/about")} className="text-gray-700 hover:text-green-600 text-lg">About</Link>
-                    <Link to="/contact" onClick={() => navigate("/contact")} className="text-gray-700 hover:text-green-600 text-lg">Contact</Link>
+                    <Link to="/" onClick={() => handleNavigation("/")} className="text-gray-700 hover:text-green-600 text-lg">Home</Link>
+                    <Link to="/about" onClick={() => handleNavigation("/about")} className="text-gray-700 hover:text-green-600 text-lg">About</Link>
+                    <Link to="/contact" onClick={() => handleNavigation("/contact")} className="text-gray-700 hover:text-green-600 text-lg">Contact</Link>
 
                     {/* Cart */}
-                    <Link to="/cart" onClick={() => navigate("/cart")} className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
+                    <Link to="/cart" onClick={() => handleNavigation("/cart")} className="relative text-gray-700 hover:text-green-600" aria-label="Cart">
                         <div className={`relative ${cartAnimation ? "animate-pulse" : ""}`}>
                             <ShoppingCart className="w-6 h-6" />
                             {cartAnimation && (
@@ -146,10 +156,10 @@ const Header = () => {
                             </button>
                             {isDropdownOpen && (
                                 <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md overflow-hidden">
-                                    <Link to="/dashboard" onClick={() => navigate("/dashboard")} className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
+                                    <Link to="/dashboard" onClick={() => handleNavigation("/dashboard")} className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
                                         <Package className="w-5 h-5 mr-2" /> Dashboard
                                     </Link>
-                                    <Link to="/account-settings" onClick={() => navigate("/account-settings")} className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
+                                    <Link to="/account-settings" onClick={() => handleNavigation("/account-settings")} className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100">
                                         <Settings className="w-5 h-5 mr-2" /> Account Settings
                                     </Link>
                                     <button onClick={handleSignOut} className="flex items-center w-full text-left px-4 py-3 text-red-600 hover:bg-gray-100">
@@ -159,7 +169,7 @@ const Header = () => {
                             )}
                         </div>
                     ) : (
-                        <Link to="/sign-in" onClick={() => navigate("/sign-in")} className="text-gray-700 hover:text-green-600" aria-label="Sign In">
+                        <Link to="/sign-in" onClick={() => handleNavigation("/sign-in")} className="text-gray-700 hover:text-green-600" aria-label="Sign In">
                             <User className="w-6 h-6" />
                         </Link>
                     )}
@@ -204,7 +214,7 @@ const Header = () => {
                         <nav className="flex flex-col p-6 space-y-4">
                             <Link
                                 to="/"
-                                onClick={() => navigate("/")}
+                                onClick={() => handleNavigation("/")}
                                 className="flex items-center text-gray-700 hover:text-green-600 py-2"
                             >
                                 <Home className="w-5 h-5 mr-3" />
@@ -212,7 +222,7 @@ const Header = () => {
                             </Link>
                             <Link
                                 to="/about"
-                                onClick={() => navigate("/about")}
+                                onClick={() => handleNavigation("/about")}
                                 className="flex items-center text-gray-700 hover:text-green-600 py-2"
                             >
                                 <Info className="w-5 h-5 mr-3" />
@@ -220,7 +230,7 @@ const Header = () => {
                             </Link>
                             <Link
                                 to="/contact"
-                                onClick={() => navigate("/contact")}
+                                onClick={() => handleNavigation("/contact")}
                                 className="flex items-center text-gray-700 hover:text-green-600 py-2"
                             >
                                 <Phone className="w-5 h-5 mr-3" />
@@ -232,7 +242,7 @@ const Header = () => {
                                     <div className="border-t border-gray-200 my-2"></div>
                                     <Link
                                         to="/dashboard"
-                                        onClick={() => navigate("/dashboard")}
+                                        onClick={() => handleNavigation("/dashboard")}
                                         className="flex items-center text-gray-700 hover:text-green-600 py-2"
                                     >
                                         <Package className="w-5 h-5 mr-3" />
@@ -240,7 +250,7 @@ const Header = () => {
                                     </Link>
                                     <Link
                                         to="/account-settings"
-                                        onClick={() => navigate("/account-settings")}
+                                        onClick={() => handleNavigation("/account-settings")}
                                         className="flex items-center text-gray-700 hover:text-green-600 py-2"
                                     >
                                         <Settings className="w-5 h-5 mr-3" />
@@ -260,7 +270,7 @@ const Header = () => {
                                     <div className="border-t border-gray-200 my-2"></div>
                                     <Link
                                         to="/sign-in"
-                                        onClick={() => navigate("/sign-in")}
+                                        onClick={() => handleNavigation("/sign-in")}
                                         className="flex items-center text-gray-700 hover:text-green-600 py-2 font-medium"
                                     >
                                         <User className="w-5 h-5 mr-3" />
