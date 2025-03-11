@@ -152,7 +152,7 @@ export const ProductProvider = ({ children }) => {
             removeFromCart,
             updateCartQuantity,
             clearCart,
-            setCartItems, 
+            setCartItems,
             savedForLater,
             saveForLater,
             removeFromSaved,
@@ -178,22 +178,30 @@ function generateExactlyTwentyUniqueProducts() {
         'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
         'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
     ];
+    const markets = [
+        "Cape Town Farmer’s Market",
+        "Stellenbosch Fresh Market",
+        "Shoprite Cape Town",
+        "Woolworths Durbanville"
+    ];
     const units = ['kg', 'bunch', 'each', 'liter', 'dozen', 'loaf', 'pack'];
 
     while (uniqueProducts.length < 20 && seen.size < groceryNames.length) {
         const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
         if (!seen.has(name)) {
             seen.add(name);
+            const market = markets[Math.floor(Math.random() * markets.length)];
             const product = {
                 id: uniqueProducts.length + 1,
                 name,
-                description: `Fresh ${name} from local markets`,
+                description: `Fresh ${name} from ${market}`,
                 price: Number((Math.random() * 20 + 1).toFixed(2)),
                 unit: getUnitForCategory(name),
                 quantity: Math.floor(Math.random() * 10) + 1,
                 available: Math.random() > 0.1,
                 image: imageMap[name],
                 category: determineCategory(name),
+                market
             };
             uniqueProducts.push(product);
         }
@@ -206,16 +214,18 @@ function generateExactlyTwentyUniqueProducts() {
             const name = `Extra ${baseName} ${variation}`;
             if (!seen.has(name)) {
                 seen.add(name);
+                const market = markets[Math.floor(Math.random() * markets.length)];
                 const product = {
                     id: uniqueProducts.length + 1,
                     name,
-                    description: `Fresh ${name} from local markets`,
+                    description: `Fresh ${name} from ${market}`,
                     price: Number((Math.random() * 20 + 1).toFixed(2)),
                     unit: units[Math.floor(Math.random() * units.length)],
                     quantity: Math.floor(Math.random() * 10) + 1,
                     available: Math.random() > 0.1,
                     image: imageMap[baseName] || imageMap[groceryNames[0]],
                     category: determineCategory(baseName),
+                    market 
                 };
                 uniqueProducts.push(product);
             }

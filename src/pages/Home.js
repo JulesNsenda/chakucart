@@ -7,13 +7,13 @@ import Header from '../components/Header';
 import Hero from '../components/Hero';
 import Footer from '../components/Footer';
 import { useToast } from '../context/ToastContext';
-import useCustomNavigate from '../hooks/useCustomNavigate'; 
+import useCustomNavigate from '../hooks/useCustomNavigate';
 
 // Updated Product Card component with preview functionality
 const ProductCard = ({ product }) => {
   const { addToCart } = useContext(ProductContext);
   const { showToast } = useToast();
-  const navigate = useCustomNavigate(); 
+  const navigate = useCustomNavigate();
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -24,7 +24,7 @@ const ProductCard = ({ product }) => {
   };
 
   const handlePreview = () => {
-    navigate(`/product/${product.id}`); 
+    navigate(`/product/${product.id}`);
   };
 
   return (
@@ -42,6 +42,7 @@ const ProductCard = ({ product }) => {
       <div className="p-4">
         <div className="text-xs text-green-600 font-semibold mb-1 uppercase">{product.category}</div>
         <h3 className="font-bold text-gray-800 mb-1 truncate">{product.name}</h3>
+        <p className="text-xs text-gray-500 mb-2">{product.market}</p>
         <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
         <div className="flex justify-between items-center">
           <span className="text-gray-900 font-bold">
@@ -99,7 +100,7 @@ const Home = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const productsRef = useRef(null);
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
-  const navigate = useCustomNavigate(); 
+  const navigate = useCustomNavigate();
 
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
   const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
@@ -193,7 +194,7 @@ const Home = () => {
 
   const handlePaginate = (pageNumber) => {
     paginate(pageNumber);
-    window.scrollTo(0, 0); 
+    window.scrollTo(0, 0);
   };
 
   const indexOfLastItem = currentPage * itemsPerPageOptions;
