@@ -94,6 +94,7 @@ const Home = () => {
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
   const [stockStatus, setStockStatus] = useState('all');
+  const [market, setMarket] = useState('all');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
@@ -111,6 +112,7 @@ const Home = () => {
     { value: 'name-asc', label: 'Name: A-Z' },
     { value: 'name-desc', label: 'Name: Z-A' },
   ];
+  const markets = ['all', 'Cape Town Farmer’s Market', 'Stellenbosch Fresh Market', 'Shoprite Cape Town', 'Woolworths Durbanville'];
 
   const categoryIcons = {
     all: "🛒", fruits: "🍎", vegetables: "🥦", dairy: "🥛",
@@ -169,6 +171,7 @@ const Home = () => {
     if (category !== 'all') filtered = filtered.filter(product => product.category === category);
     if (stockStatus === 'in-stock') filtered = filtered.filter(product => product.available && product.quantity > 0);
     else if (stockStatus === 'out-of-stock') filtered = filtered.filter(product => !product.available || product.quantity === 0);
+    if (market !== 'all') filtered = filtered.filter(product => product.market === market);
 
     if (sortBy === 'price-asc') filtered.sort((a, b) => a.price - b.price);
     if (sortBy === 'price-desc') filtered.sort((a, b) => b.price - a.price);
@@ -177,7 +180,7 @@ const Home = () => {
 
     setFilteredProducts(filtered.slice(0, 20));
     setTimeout(() => setIsLoading(false), 500);
-  }, [allProducts, searchParams, sortBy, category, stockStatus]);
+  }, [allProducts, searchParams, sortBy, category, stockStatus, market]);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('q') || '');
@@ -287,8 +290,9 @@ const Home = () => {
               >
                 <X className="w-5 h-5" />
               </button>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+              <div className="flex flex-wrap items-end gap-4">
+                {/* Sort By */}
+                <div className="flex-1 min-w-[150px]">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                   <select
                     value={sortBy}
@@ -300,7 +304,8 @@ const Home = () => {
                     ))}
                   </select>
                 </div>
-                <div>
+                {/* Category */}
+                <div className="flex-1 min-w-[150px]">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                   <select
                     value={category}
@@ -312,7 +317,8 @@ const Home = () => {
                     ))}
                   </select>
                 </div>
-                <div>
+                {/* Stock Status */}
+                <div className="flex-1 min-w-[150px]">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
                   <select
                     value={stockStatus}
@@ -324,6 +330,19 @@ const Home = () => {
                     ))}
                   </select>
                 </div>
+                {/* Market */}
+                <div className="flex-1 min-w-[150px]">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Market</label>
+                  <select
+                    value={market}
+                    onChange={(e) => setMarket(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    {markets.map(mkt => (
+                      <option key={mkt} value={mkt}>{mkt.charAt(0).toUpperCase() + mkt.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="mt-4 flex justify-end gap-2">
                 <button
@@ -331,6 +350,7 @@ const Home = () => {
                     setSortBy('none');
                     setCategory('all');
                     setStockStatus('all');
+                    setMarket('all');
                     setSearchTerm('');
                     setSearchParams({});
                   }}
