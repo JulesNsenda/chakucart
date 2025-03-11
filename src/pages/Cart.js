@@ -16,7 +16,7 @@ const Cart = () => {
         saveForLater,
         removeFromSaved,
         moveToCart,
-        marketDistance 
+        marketDistance
     } = useContext(ProductContext);
     const navigate = useCustomNavigate();
     const { isAuthenticated, hasRequiredDetails } = useAuth();
@@ -78,10 +78,10 @@ const Cart = () => {
     }
 
     // Calculate cart totals
-    const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0).toFixed(2);
-    const tax = (parseFloat(subtotal) * 0.15).toFixed(2);
-    const shipping = (marketDistance * 10).toFixed(2);
-    const total = (parseFloat(subtotal) + parseFloat(tax) + parseFloat(shipping)).toFixed(2);
+    const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
+    const tax = subtotal * 0.15;
+    const shipping = marketDistance * 10;
+    const total = subtotal + tax + shipping;
     const itemCount = cart.reduce((sum, item) => sum + (item.cartQuantity || 1), 0);
 
     // Handle checkout with auth check
@@ -94,7 +94,9 @@ const Cart = () => {
             navigate('/dashboard');
             return;
         }
-        navigate('/payment');
+        navigate('/payment', {
+            state: { subtotal, tax, shipping, total, itemCount }
+        });
     };
 
     return (
@@ -110,29 +112,27 @@ const Cart = () => {
                             onClick={() => setShowSummary(!showSummary)}
                             className="w-full p-3 bg-white shadow rounded-lg flex justify-between items-center"
                         >
-                            <span className="font-medium text-gray-800">Order Summary: R{total}</span>
+                            <span className="font-medium text-gray-800">Order Summary: R{total.toFixed(2)}</span>
                             {showSummary ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         </button>
-
-                        {/* Mobile Summary Dropdown */}
                         {showSummary && (
                             <div className="mt-2 p-4 bg-white shadow rounded-lg">
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
                                         <p className="text-gray-600">Items ({itemCount})</p>
-                                        <p className="text-gray-800 font-semibold">R{subtotal}</p>
+                                        <p className="text-gray-800 font-semibold">R{subtotal.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <p className="text-gray-600">Tax (15%)</p>
-                                        <p className="text-gray-800 font-semibold">R{tax}</p>
+                                        <p className="text-gray-800 font-semibold">R{tax.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <p className="text-gray-600">Shipping ({marketDistance} km)</p>
-                                        <p className="text-gray-800 font-semibold">R{shipping}</p>
+                                        <p className="text-gray-800 font-semibold">R{shipping.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-between text-lg font-bold mt-2 pt-2 border-t">
                                         <p>Total</p>
-                                        <p className="text-blue-600">R{total}</p>
+                                        <p className="text-blue-600">R{total.toFixed(2)}</p>
                                     </div>
                                 </div>
                                 <div className="mt-4">
@@ -281,26 +281,24 @@ const Cart = () => {
                         <div className="hidden lg:block lg:w-1/3">
                             <div className="bg-white shadow-md rounded-lg p-5 sticky top-4">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">Cart Summary</h2>
-
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center">
                                         <p className="text-gray-600">Items ({itemCount})</p>
-                                        <p className="text-gray-800 font-semibold">R{subtotal}</p>
+                                        <p className="text-gray-800 font-semibold">R{subtotal.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <p className="text-gray-600">Tax (15%)</p>
-                                        <p className="text-gray-800 font-semibold">R{tax}</p>
+                                        <p className="text-gray-800 font-semibold">R{tax.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <p className="text-gray-600">Shipping (R10/km, {marketDistance} km)</p>
-                                        <p className="text-gray-800 font-semibold">R{shipping}</p>
+                                        <p className="text-gray-800 font-semibold">R{shipping.toFixed(2)}</p>
                                     </div>
                                     <div className="flex justify-between text-lg font-bold mt-4 border-t pt-4">
                                         <p>Total</p>
-                                        <p className="text-blue-600">R{total}</p>
+                                        <p className="text-blue-600">R{total.toFixed(2)}</p>
                                     </div>
                                 </div>
-
                                 <div className="mt-6 space-y-3">
                                     <button
                                         onClick={handleCheckout}
@@ -326,7 +324,7 @@ const Cart = () => {
                                 onClick={handleCheckout}
                                 className="w-full px-4 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 font-medium"
                             >
-                                Checkout • R{total}
+                                Checkout • R{total.toFixed(2)}
                             </button>
                             <button
                                 onClick={() => clearCart()}

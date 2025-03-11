@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,7 @@ import CustomDialog from '../components/CustomDialog';
 import useCustomNavigate from '../hooks/useCustomNavigate';
 
 const Dashboard = () => {
-    const { cart, setCartItems } = useContext(ProductContext);
+    const { cart, setCartItems, marketDistance } = useContext(ProductContext);
     const { user, isAuthenticated, hasRequiredDetails, authorizationCode } = useAuth();
     const { showToast } = useToast();
     const navigate = useCustomNavigate();
@@ -44,15 +44,15 @@ const Dashboard = () => {
         if (cart.length > 0) {
             const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0).toFixed(2);
             const tax = calculateTax(subtotal);
-            const shipping = 50.00;
-            const total = (parseFloat(subtotal) + parseFloat(tax) + shipping).toFixed(2);
+            const shipping = (marketDistance * 10).toFixed(2);
+            const total = (parseFloat(subtotal) + parseFloat(tax) + parseFloat(shipping)).toFixed(2);
 
             setOngoingOrders([{
                 id: `ORD-${Date.now()}`,
                 items: cart,
                 subtotal,
                 tax,
-                shipping: shipping.toFixed(2),
+                shipping,
                 total,
                 status: 'Pending Checkout',
                 paymentMethod: 'Pay Now',
@@ -63,7 +63,7 @@ const Dashboard = () => {
         } else {
             setOngoingOrders([]);
         }
-    }, [cart]);
+    }, [cart, marketDistance]);
 
     const fetchOrdersFromLocalStorage = useCallback(() => {
         if (!user) return;
@@ -104,7 +104,7 @@ const Dashboard = () => {
         setAllOrders(updatedOrders);
         showToast('Delivery confirmed!', 'success');
         setIsLoading(false);
-        navigate('/dashboard?tab=completed'); 
+        navigate('/dashboard?tab=completed');
     }, [user, authorizationCode, navigate, showToast, allOrders]);
 
     const handleReplaceOrder = (order) => {
@@ -257,7 +257,15 @@ const Dashboard = () => {
 
                     {order.status === 'Pending Checkout' && hasRequiredDetails && (
                         <button
-                            onClick={() => navigate('/payment')}
+                            onClick={() => navigate('/payment', {
+                                state: {
+                                    subtotal: parseFloat(order.subtotal),
+                                    tax: parseFloat(order.tax),
+                                    shipping: parseFloat(order.shipping),
+                                    total: parseFloat(order.total),
+                                    itemCount: order.items.reduce((sum, item) => sum + (item.cartQuantity || 1), 0)
+                                }
+                            })}
                             className="py-1 px-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all duration-200 text-xs font-medium"
                         >
                             Proceed to Payment

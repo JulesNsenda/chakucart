@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ProductContext } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
@@ -8,28 +8,27 @@ import { useToast } from '../context/ToastContext';
 import axios from 'axios';
 
 const Payment = () => {
-    const { cart, clearCart } = useContext(ProductContext);
+    const { cart, clearCart, marketDistance } = useContext(ProductContext);
     const { user, updateUserDetails, isAuthenticated, isCardLinked, authorizationCode } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const { showToast } = useToast();
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const { showToast } = useToast();
     const API_BASE_URL = process.env.NODE_ENV === 'production'
         ? '/api'
         : 'http://localhost:5000/api';
 
+    const { subtotal, tax, shipping, total, itemCount } = location.state || {};
+
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/sign-in');
-        } else if (cart.length === 0) {
+        } else if (!subtotal) {
             navigate('/cart');
         }
-    }, [isAuthenticated, cart, navigate]);
+    }, [isAuthenticated, subtotal, navigate]);
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
-    const tax = subtotal * 0.15;
-    const shipping = 5 * 10;
-    const total = subtotal + tax + shipping;
     const totalInKobo = Math.round(total * 100);
 
     const saveOrderToLocalStorage = (order) => {
@@ -50,7 +49,7 @@ const Payment = () => {
 
             const { reference } = response.data.data;
             const handler = window.PaystackPop.setup({
-                key: process.env.PAYSTACK_SECRET_KEY || 'pk_test_91c1e6a74f8f8c435434ac584943fc6696c69a7c',
+                key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
                 email: user.email,
                 amount: totalInKobo,
                 currency: 'ZAR',
@@ -154,7 +153,7 @@ const Payment = () => {
         }
     };
 
-    if (!isAuthenticated || cart.length === 0) return null;
+    if (!isAuthenticated || !subtotal) return null;
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
@@ -173,7 +172,7 @@ const Payment = () => {
                             <p className="text-gray-800 text-sm sm:text-base">R{tax.toFixed(2)}</p>
                         </div>
                         <div className="flex justify-between mb-1 sm:mb-2">
-                            <p className="text-gray-600 text-sm sm:text-base">Shipping (R10/km, 5km) <span className="text-xs sm:text-sm text-gray-500">(Paid to Rider)</span></p>
+                            <p className="text-gray-600 text-sm sm:text-base">Shipping (R10/km, {marketDistance}km) <span className="text-xs sm:text-sm text-gray-500">(Paid to Rider)</span></p>
                             <p className="text-gray-800 text-sm sm:text-base">R{shipping.toFixed(2)}</p>
                         </div>
                         <div className="flex justify-between mt-1 sm:mt-2 border-t pt-1 sm:pt-2">
