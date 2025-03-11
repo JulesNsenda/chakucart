@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState } from "react";
 import { ProductContext } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -16,6 +16,7 @@ const Cart = () => {
         saveForLater,
         removeFromSaved,
         moveToCart,
+        marketDistance 
     } = useContext(ProductContext);
     const navigate = useCustomNavigate();
     const { isAuthenticated, hasRequiredDetails } = useAuth();
@@ -23,47 +24,6 @@ const Cart = () => {
     // UI state
     const [showSummary, setShowSummary] = useState(false); // For mobile view toggle
     const [showSavedItems, setShowSavedItems] = useState(true);
-
-    // Location state for shipping calculation
-    const [location] = useState({ latitude: -33.9249, longitude: 18.4241 }); // Default: Cape Town
-    const [distance, setDistance] = useState(5); // Default distance
-    const [clientLocation, setClientLocation] = useState(null);
-
-    // Calculate distance for shipping
-    useEffect(() => {
-        const getClientLocation = () => {
-            // For simplicity, use mock data similar to original implementation
-            const mockClientLat = -33.9249 + 0.045; // ~5 km north
-            const mockClientLon = 18.4241;
-            setClientLocation({ latitude: mockClientLat, longitude: mockClientLon });
-        };
-
-        getClientLocation();
-        return () => setClientLocation(null);
-    }, []);
-
-    // Calculate distance when clientLocation changes
-    useEffect(() => {
-        if (clientLocation) {
-            const dist = calculateDistance(
-                location.latitude, location.longitude,
-                clientLocation.latitude, clientLocation.longitude
-            );
-            setDistance(Math.round(dist)); // Round to nearest kilometer
-        }
-    }, [clientLocation, location]);
-
-    // Calculate distance between two points (Haversine formula)
-    const calculateDistance = (lat1, lon1, lat2, lon2) => {
-        const R = 6371; // Earth's radius in kilometers
-        const dLat = (lat2 - lat1) * (Math.PI / 180);
-        const dLon = (lon2 - lon1) * (Math.PI / 180);
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; // Distance in kilometers
-    };
 
     // Empty cart view
     if (cart.length === 0) {
@@ -120,7 +80,7 @@ const Cart = () => {
     // Calculate cart totals
     const subtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0).toFixed(2);
     const tax = (parseFloat(subtotal) * 0.15).toFixed(2);
-    const shipping = (distance * 10).toFixed(2); // R10 per kilometer, as in original
+    const shipping = (marketDistance * 10).toFixed(2);
     const total = (parseFloat(subtotal) + parseFloat(tax) + parseFloat(shipping)).toFixed(2);
     const itemCount = cart.reduce((sum, item) => sum + (item.cartQuantity || 1), 0);
 
@@ -167,7 +127,7 @@ const Cart = () => {
                                         <p className="text-gray-800 font-semibold">R{tax}</p>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <p className="text-gray-600">Shipping</p>
+                                        <p className="text-gray-600">Shipping ({marketDistance} km)</p>
                                         <p className="text-gray-800 font-semibold">R{shipping}</p>
                                     </div>
                                     <div className="flex justify-between text-lg font-bold mt-2 pt-2 border-t">
@@ -332,7 +292,7 @@ const Cart = () => {
                                         <p className="text-gray-800 font-semibold">R{tax}</p>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <p className="text-gray-600">Shipping (R10/km, {distance} km)</p>
+                                        <p className="text-gray-600">Shipping (R10/km, {marketDistance} km)</p>
                                         <p className="text-gray-800 font-semibold">R{shipping}</p>
                                     </div>
                                     <div className="flex justify-between text-lg font-bold mt-4 border-t pt-4">
@@ -377,7 +337,6 @@ const Cart = () => {
                         </div>
                     </div>
                 </div>
-
             </main>
             <Footer />
         </div>

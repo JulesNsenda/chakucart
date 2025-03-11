@@ -89,7 +89,13 @@ const normalizeText = (text) => {
 };
 
 const Home = () => {
-  const { allProducts, paginate, currentPage, addToCart, cart } = useContext(ProductContext);
+  const { allProducts, paginate, currentPage, addToCart, cart, selectedMarket, marketDistance, selectMarket } = useContext(ProductContext);
+  const marketsWithDistance = [
+    { name: 'Cape Town Farmer’s Market', distance: 5 },
+    { name: 'Stellenbosch Fresh Market', distance: 10 },
+    { name: 'Shoprite Cape Town', distance: 3 },
+    { name: 'Woolworths Durbanville', distance: 7 }
+  ];
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
@@ -112,7 +118,6 @@ const Home = () => {
     { value: 'name-asc', label: 'Name: A-Z' },
     { value: 'name-desc', label: 'Name: Z-A' },
   ];
-  const markets = ['all', 'Cape Town Farmer’s Market', 'Stellenbosch Fresh Market', 'Shoprite Cape Town', 'Woolworths Durbanville'];
 
   const categoryIcons = {
     all: "🛒", fruits: "🍎", vegetables: "🥦", dairy: "🥛",
@@ -247,39 +252,67 @@ const Home = () => {
             </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="mb-6 relative">
-            <form onSubmit={handleSearch} className="relative">
-              <input
-                type="text"
-                placeholder="Search for groceries..."
-                className="w-full pl-10 pr-12 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-                value={searchTerm}
-                onChange={handleInputChange}
-                aria-label="Search groceries"
-              />
-              <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
-              <button
-                type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 bg-green-500 text-white rounded-full hover:bg-green-600"
+          {/* Search Bar and Market Selector on Same Line */}
+          <div className="mb-6 flex flex-col md:flex-row md:items-center gap-4">
+            {/* Search Bar */}
+            <div className="relative flex-1">
+              <form onSubmit={handleSearch} className="relative">
+                <input
+                  type="text"
+                  placeholder="Search for groceries..."
+                  className="w-full pl-10 pr-12 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  value={searchTerm}
+                  onChange={handleInputChange}
+                  aria-label="Search groceries"
+                />
+                <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 bg-green-500 text-white rounded-full hover:bg-green-600"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              </form>
+              {searchSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full max-w-md bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
+                  {searchSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0"
+                    >
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Market Selector */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1 md:mb-0 md:sr-only">Select Nearby Market</label>
+              <select
+                value={selectedMarket || ''}
+                onChange={(e) => {
+                  const selected = marketsWithDistance.find(m => m.name === e.target.value);
+                  selectMarket(selected?.name || null, selected?.distance || 5);
+                }}
+                className="w-full md:w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <Search className="w-4 h-4" />
-              </button>
-            </form>
-            {searchSuggestions.length > 0 && (
-              <ul className="absolute z-10 w-full max-w-md bg-white border border-gray-300 rounded-md mt-1 shadow-lg">
-                {searchSuggestions.map((suggestion, index) => (
-                  <li
-                    key={index}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0"
-                  >
-                    {suggestion}
-                  </li>
+                <option value="">All Markets</option>
+                {marketsWithDistance.map(m => (
+                  <option key={m.name} value={m.name}>
+                    {m.name}
+                  </option>
                 ))}
-              </ul>
-            )}
+              </select>
+            </div>
           </div>
+          {selectedMarket && (
+            <p className="text-sm text-gray-600 mb-6">
+              Showing products from {selectedMarket} ({marketDistance} km away)
+            </p>
+          )}
 
           {/* Filter Panel */}
           {filtersOpen && (
@@ -327,19 +360,6 @@ const Home = () => {
                   >
                     {stockStatuses.map(status => (
                       <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Market */}
-                <div className="flex-1 min-w-[150px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Market</label>
-                  <select
-                    value={market}
-                    onChange={(e) => setMarket(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    {markets.map(mkt => (
-                      <option key={mkt} value={mkt}>{mkt.charAt(0).toUpperCase() + mkt.slice(1)}</option>
                     ))}
                   </select>
                 </div>

@@ -31,6 +31,8 @@ export const ProductProvider = ({ children }) => {
         const savedReviews = localStorage.getItem('freshCartReviews');
         return savedReviews ? JSON.parse(savedReviews) : {};
     });
+    const [selectedMarket, setSelectedMarket] = useState(null);
+    const [marketDistance, setMarketDistance] = useState(5);
     const itemsPerPage = 8;
 
     useEffect(() => {
@@ -62,6 +64,19 @@ export const ProductProvider = ({ children }) => {
     const currentProducts = products.slice(indexOfFirstItem, indexOfLastItem);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+    // Select a market and set distance
+    const selectMarket = (market, distance) => {
+        setSelectedMarket(market);
+        setMarketDistance(distance);
+        // Filter products to only show those from the selected market
+        if (market) {
+            setProducts(prevProducts => {
+                const filtered = prevProducts.filter(p => p.market === market);
+                return filtered.length > 0 ? filtered : prevProducts;
+            });
+        }
+    };
 
     // Cart methods
     const addToCart = (product) => {
@@ -162,7 +177,10 @@ export const ProductProvider = ({ children }) => {
             getAverageRating,
             paginate,
             currentPage,
-            itemsPerPage
+            itemsPerPage,
+            selectedMarket,
+            marketDistance,
+            selectMarket
         }}>
             {children}
         </ProductContext.Provider>
@@ -225,7 +243,7 @@ function generateExactlyTwentyUniqueProducts() {
                     available: Math.random() > 0.1,
                     image: imageMap[baseName] || imageMap[groceryNames[0]],
                     category: determineCategory(baseName),
-                    market 
+                    market
                 };
                 uniqueProducts.push(product);
             }
