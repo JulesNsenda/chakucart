@@ -1,70 +1,66 @@
-# Getting Started with Create React App
+# ChakuCart - Business Profile
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**ChakuCart** is an innovative e-commerce platform designed to connect customers with local markets, offering a seamless shopping experience for fresh produce and goods. Built with a focus on convenience, affordability, and supporting local vendors, ChakuCart allows users to browse products from multiple markets, add items to their cart, and choose flexible payment options powered by Paystack. The platform supports both "Pay Now" (immediate card payments) and "Pay on Delivery" (card upon receipt), catering to diverse customer preferences in regions with varying levels of digital payment adoption.
 
-## Available Scripts
+## Key Features
+- **Multi-Market Shopping**: Customers can select products from different markets in a single order.
+- **Dynamic Shipping Calculation**: Shipping fees are calculated per market based on distance (R10 per km), ensuring fair compensation for riders.
+- **Paystack Integration**: Secure payment processing for online transactions and authorization for Pay-on-Delivery orders.
+- **User Dashboard**: Track ongoing, pending, completed, and refunded orders with detailed breakdowns.
+- **Real-Time Collaboration**: Built with modern React and context APIs for a responsive, state-driven UI.
 
-In the project directory, you can run:
+**Target Audience**: Urban and semi-urban shoppers seeking fresh goods, local market vendors, and delivery riders.
 
-### `npm start`
+**Business Goal**: To streamline e-commerce for local markets, enhance customer trust through flexible payments, and empower riders with transparent earnings.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+ChakuCart is accessible at: [https://chakucart-vert.vercel.app/](https://chakucart-vert.vercel.app/)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## How ChakuCart Operates
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+ChakuCart follows a straightforward yet robust workflow, integrating front-end user interactions with Paystack’s payment infrastructure. Below, we outline the app’s operation, focusing on the checkout and payment process, supported by a UML sequence diagram.
 
-### `npm run build`
+### Operational Workflow
+1. **Browsing and Adding to Cart**:
+   - Users browse products categorized by markets (e.g., Market A, Market B).
+   - Each product includes a `marketId` and `marketDistance` (distance to the user’s address).
+   - Items are added to the cart via the `addToCart` function in `ProductContext`.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. **Cart Review**:
+   - The cart groups items by `marketId`, calculates a subtotal, and computes shipping fees per market (`marketDistance * 10`).
+   - Tax (15%) is applied to the subtotal, and a total is presented.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. **Checkout Initiation**:
+   - Users proceed to checkout from the cart or dashboard (for ongoing orders).
+   - If authenticated and required details (address, payment info) are provided, they’re directed to the payment page.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. **Payment Processing**:
+   - **Pay Now**: Users select "Paystack" and complete an immediate payment.
+   - **Pay on Delivery**: Users link a card (for authorization) and confirm the order.
+   - Paystack handles transaction initialization and verification.
 
-### `npm run eject`
+5. **Order Confirmation**:
+   - Post-payment, orders are saved to local storage and redirected to `/order-confirmation`.
+   - Delivery status updates are reflected in the dashboard.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### UML Sequence Diagram: Checkout and Payment
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+![Checkout and Payment Sequence Diagram](./src/assets/diagrams/sequence-diagram.png)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Technical Details
+- **Frontend**: React with Hooks (`useState`, `useEffect`, `useContext`), React Router for navigation.
+- **State Management**: `ProductContext` for cart and market distances, `AuthContext` for user data.
+- **API Calls**: Axios for HTTP requests to Paystack endpoints (`/initialize-transaction`, `/verify-transaction`, `/pay-on-delivery`).
+- **Storage**: LocalStorage persists orders (`freshCartOrders` key).
+- **UI Components**: `Header`, `Footer`, `CustomDialog` for modals, styled with Tailwind CSS.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## Accessibility
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+ChakuCart is deployed and fully accessible at:  
+**[https://chakucart-vert.vercel.app/](https://chakucart-vert.vercel.app/)**  
+Hosted on Vercel, the app is optimized for performance and scalability, ensuring a reliable experience for users and seamless integration with Paystack’s services.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
