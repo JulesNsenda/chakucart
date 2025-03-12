@@ -78,7 +78,6 @@ export const AuthProvider = ({ children }) => {
             authorizationCode: updates.authorizationCode ?? prev.authorizationCode, // Update authorizationCode if provided, otherwise retain existing value
             codReference: updates.codReference ?? prev.codReference, // Update codReference if provided, otherwise retain existing value
         } : prev); // Update details, preserve auth state, mark as not first-time, and manage linkedCard, authorizationCode, and codReference
-        console.log('Updated user details:', { ...user, ...updates }); // Debug log
     };
 
     // Check if user is authenticated, first-time, has required details, and card linkage
