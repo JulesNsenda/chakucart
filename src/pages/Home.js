@@ -89,25 +89,24 @@ const normalizeText = (text) => {
 };
 
 const Home = () => {
-  const { allProducts, paginate, currentPage, addToCart, cart, selectedMarket, marketDistance, selectMarket } = useContext(ProductContext);
-  const marketsWithDistance = [
-    { name: 'Cape Town Farmer’s Market', distance: 5 },
-    { name: 'Stellenbosch Fresh Market', distance: 10 },
-    { name: 'Shoprite Cape Town', distance: 3 },
-    { name: 'Woolworths Durbanville', distance: 7 }
-  ];
+  const { allProducts, paginate, currentPage, selectedMarket, marketDistance, selectMarket } = useContext(ProductContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('none');
   const [category, setCategory] = useState('all');
   const [stockStatus, setStockStatus] = useState('all');
-  const [market, setMarket] = useState('all');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const productsRef = useRef(null);
   const [itemsPerPageOptions, setItemsPerPageOptions] = useState(8);
-  const navigate = useCustomNavigate();
+
+  const marketsWithDistance = [
+    { name: 'Cape Town Farmer’s Market', distance: 5 },
+    { name: 'Stellenbosch Fresh Market', distance: 10 },
+    { name: 'Shoprite Cape Town', distance: 3 },
+    { name: 'Woolworths Durbanville', distance: 7 }
+  ];
 
   const categories = ['all', 'fruits', 'vegetables', 'dairy', 'meat', 'bread', 'beverages'];
   const stockStatuses = ['all', 'in-stock', 'out-of-stock'];
@@ -176,7 +175,10 @@ const Home = () => {
     if (category !== 'all') filtered = filtered.filter(product => product.category === category);
     if (stockStatus === 'in-stock') filtered = filtered.filter(product => product.available && product.quantity > 0);
     else if (stockStatus === 'out-of-stock') filtered = filtered.filter(product => !product.available || product.quantity === 0);
-    if (market !== 'all') filtered = filtered.filter(product => product.market === market);
+
+    if (selectedMarket) {
+      filtered = filtered.filter(product => product.market === selectedMarket);
+    }
 
     if (sortBy === 'price-asc') filtered.sort((a, b) => a.price - b.price);
     if (sortBy === 'price-desc') filtered.sort((a, b) => b.price - a.price);
@@ -185,7 +187,7 @@ const Home = () => {
 
     setFilteredProducts(filtered.slice(0, 20));
     setTimeout(() => setIsLoading(false), 500);
-  }, [allProducts, searchParams, sortBy, category, stockStatus, market]);
+  }, [allProducts, searchParams, sortBy, category, stockStatus, selectedMarket]);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('q') || '');
@@ -290,7 +292,9 @@ const Home = () => {
 
             {/* Market Selector */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1 md:mb-0 md:sr-only">Select Nearby Market</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 md:mb-0 md:sr-only">
+                Select Nearby Market
+              </label>
               <select
                 value={selectedMarket || ''}
                 onChange={(e) => {
@@ -370,7 +374,7 @@ const Home = () => {
                     setSortBy('none');
                     setCategory('all');
                     setStockStatus('all');
-                    setMarket('all');
+                    selectMarket(null, 5);
                     setSearchTerm('');
                     setSearchParams({});
                   }}

@@ -51,6 +51,13 @@ const imageMap = {
 };
 
 const generateRandomProducts = (count = 20) => {
+    const markets = [
+        'Cape Town Farmer’s Market',
+        'Stellenbosch Fresh Market',
+        'Shoprite Cape Town',
+        'Woolworths Durbanville'
+    ];
+
     return Array.from({ length: count }, (_, index) => {
         const name = groceryNames[Math.floor(Math.random() * groceryNames.length)];
         return {
@@ -62,9 +69,22 @@ const generateRandomProducts = (count = 20) => {
             quantity: Math.floor(Math.random() * 10) + 1,
             available: Math.random() > 0.1,
             image: imageMap[name],
+            market: markets[Math.floor(Math.random() * markets.length)],
+            category: determineCategory(name),
         };
     });
 };
+
+function determineCategory(name) {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
+    if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
+    if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
+    if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
+    if (lowerName.includes('bread')) return 'bread';
+    if (lowerName.includes('juice')) return 'beverages';
+    return 'all';
+}
 
 // Function for specific units based on category
 function getUnitForCategory(name) {
