@@ -175,7 +175,7 @@ const Cart = () => {
                                             </div>
 
                                             {/* Mobile-friendly controls */}
-                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                                                 {/* Quantity Selector */}
                                                 <div className="flex items-center border rounded-md">
                                                     <button
@@ -197,25 +197,25 @@ const Cart = () => {
                                                     </button>
                                                 </div>
 
-                                                {/* Action buttons - icons with accessible labels on mobile, text on desktop */}
-                                                <div className="flex gap-2">
+                                                {/* Action buttons */}
+                                                <div className="flex gap-3">
                                                     <button
                                                         onClick={() => saveForLater(item.id)}
-                                                        className="p-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 md:px-3 md:py-2"
+                                                        className="flex items-center p-2 md:px-3 md:py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-all duration-200"
                                                         aria-label="Save for later"
                                                         title="Save for later"
                                                     >
-                                                        <Clock className="w-5 h-5 md:w-4 md:h-4" />
-                                                        <span className="hidden md:inline md:ml-1">Save for Later</span>
+                                                        <Clock className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+                                                        <span className="hidden md:inline text-sm">Save for Later</span>
                                                     </button>
                                                     <button
                                                         onClick={() => removeFromCart(item.id)}
-                                                        className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 md:px-3 md:py-2"
+                                                        className="flex items-center p-2 md:px-3 md:py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200"
                                                         aria-label="Remove item"
                                                         title="Remove item"
                                                     >
-                                                        <Trash className="w-5 h-5 md:w-4 md:h-4" />
-                                                        <span className="hidden md:inline md:ml-1">Remove</span>
+                                                        <Trash className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+                                                        <span className="hidden md:inline text-sm">Remove</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -250,22 +250,24 @@ const Cart = () => {
                                                             <h2 className="text-sm font-medium text-gray-800">{item.name}</h2>
                                                             <p className="text-gray-600 text-xs">R{item.price.toFixed(2)}</p>
                                                         </div>
-                                                        <div className="flex gap-2">
+                                                        <div className="flex gap-3">
                                                             <button
                                                                 onClick={() => moveToCart(item.id)}
-                                                                className="p-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                                                                className="flex items-center p-2 md:px-3 md:py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-all duration-200"
                                                                 aria-label="Move to cart"
                                                                 title="Move to cart"
                                                             >
-                                                                <ArrowRight className="w-5 h-5" />
+                                                                <ArrowRight className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+                                                                <span className="hidden md:inline text-sm">Move to Cart</span>
                                                             </button>
                                                             <button
                                                                 onClick={() => removeFromSaved(item.id)}
-                                                                className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                                                className="flex items-center p-2 md:px-3 md:py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-all duration-200"
                                                                 aria-label="Remove saved item"
                                                                 title="Remove saved item"
                                                             >
-                                                                <Trash className="w-5 h-5" />
+                                                                <Trash className="w-5 h-5 md:w-4 md:h-4 md:mr-2" />
+                                                                <span className="hidden md:inline text-sm">Remove</span>
                                                             </button>
                                                         </div>
                                                     </div>
