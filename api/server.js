@@ -202,7 +202,7 @@ app.post('/api/confirm-delivery', async (req, res) => {
                             subaccount: 'ACCT_vdz831vfm2ouz9l',
                             share: Math.round(order.subtotal * 0.875 * 100), // 87.5% of subtotal
                             transaction_charge: Math.round(order.subtotal * 0.125 * 100), // 12.5% fee
-                            bearer: "account",
+                            bearer: 'account',
                         },
                         {
                             subaccount: 'ACCT_wvknbrcabu1x2dt',
