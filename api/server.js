@@ -12,6 +12,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'build')));
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const FARMERS_SUBACCOUNT_CODE = "ACCT_vdz831vfm2ouz9l";
+const TRANSPORTER_SUBACCOUNT_CODE = "ACCT_wvknbrcabu1x2dt";
 
 // Function to generate a unique reference
 const generateUniqueReference = (prefix) => {
@@ -69,19 +71,19 @@ app.post('/api/initialize-transaction', async (req, res) => {
                 reference: generateUniqueReference('FRESH'),
                 metadata: { cart, subtotal, shipping, type: 'full_payment' },
                 split: {
-                    type: 'flat',
+                    type: "flat",
+                    bearer_type: "account",
                     subaccounts: [
                         {
-                            subaccount: 'ACCT_vdz831vfm2ouz9l',
+                            subaccount: FARMERS_SUBACCOUNT_CODE,
                             share: Math.round(subtotal * 0.875 * 100), // 87.5% of cart value
                             transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
                         },
                         {
-                            subaccount: 'ACCT_wvknbrcabu1x2dt',
+                            subaccount: TRANSPORTER_SUBACCOUNT_CODE,
                             share: shippingInKobo, // 100% of shipping
                         },
                     ],
-                    bearer: "account"
                 },
             },
             { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
@@ -196,19 +198,19 @@ app.post('/api/confirm-delivery', async (req, res) => {
                 reference: generateUniqueReference('POD_CAPTURE'),
                 metadata: { type: 'capture_for_pod', orderId },
                 split: {
-                    type: 'flat',
+                    type: "flat",
+                    bearer_type: "account",
                     subaccounts: [
                         {
-                            subaccount: 'ACCT_vdz831vfm2ouz9l',
+                            subaccount: FARMERS_SUBACCOUNT_CODE,
                             share: Math.round(order.subtotal * 0.875 * 100), // 87.5% of subtotal
                             transaction_charge: Math.round(order.subtotal * 0.125 * 100), // 12.5% fee
                         },
                         {
-                            subaccount: 'ACCT_wvknbrcabu1x2dt',
+                            subaccount: TRANSPORTER_SUBACCOUNT_CODE,
                             share: shippingInKobo, // 100% of shipping
                         },
                     ],
-                    bearer: 'account'
                 },
             },
             {
