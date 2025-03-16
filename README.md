@@ -51,9 +51,34 @@ ChakuCart follows a straightforward yet robust workflow, integrating front-end u
 ### Technical Details
 - **Frontend**: React with Hooks (`useState`, `useEffect`, `useContext`), React Router for navigation.
 - **State Management**: `ProductContext` for cart and market distances, `AuthContext` for user data.
-- **API Calls**: Axios for HTTP requests to Paystack endpoints (`/initialize-transaction`, `/verify-transaction`, `/pay-on-delivery`).
+- **Backend**: Express.js with Axios for HTTP requests to Paystack endpoints.
 - **Storage**: LocalStorage persists orders (`freshCartOrders` key).
 - **UI Components**: `Header`, `Footer`, `CustomDialog` for modals, styled with Tailwind CSS.
+
+#### Paystack Calls
+The backend integrates with **Paystack** for payment processing, making the following API calls:
+
+- **`POST https://api.paystack.co/transaction/initialize`**  
+  - **Purpose**: Initializes a transaction for card authorization or full payment.  
+
+- **`GET https://api.paystack.co/transaction/verify/<reference>`**  
+  - **Purpose**: Verifies a transaction’s status and retrieves authorization data.  
+
+- **`POST https://api.paystack.co/transaction/charge_authorization`**  
+  - **Purpose**: Charges a pre-authorized card for Pay on Delivery upon confirmation.  
+
+- **`GET https://api.paystack.co/customer?email=<email>`**  
+  - **Purpose**: Retrieves customer data to update metadata with an authorization code.  
+
+- **`PUT https://api.paystack.co/customer/<customer_code>`**  
+  - **Purpose**: Updates a customer’s metadata to save an authorization code.  
+
+- **`POST https://api.paystack.co/refund`**  
+  - **Purpose**: Processes a refund for a completed "Pay Now" transaction.  
+
+**Notes**:  
+- All calls use the `PAYSTACK_SECRET_KEY` from environment variables for authentication.  
+- Split payments are implemented in relevant calls, dividing funds between farmer and transporter subaccounts.
 
 ---
 
