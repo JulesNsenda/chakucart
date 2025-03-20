@@ -152,18 +152,13 @@ const Home = () => {
     setSearchParams({ q: suggestion });
   };
 
-  const [filteredProducts, setFilteredProducts] = useState(() => {
-    const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
-    return uniqueProducts.length < 20
-      ? generateExactlyTwentyUniqueProductsFromExisting(uniqueProducts, imageMap)
-      : uniqueProducts.slice(0, 20);
-  });
+  const [filteredProducts, setFilteredProducts] = useState(allProducts);
 
   useEffect(() => {
     setIsLoading(true);
-    let filtered = Array.from(new Map(allProducts.map(p => [p.id, p])).values());
-    const searchQuery = searchParams.get('q') || '';
+    let filtered = [...allProducts]; // Start with all products from context
 
+    const searchQuery = searchParams.get('q') || '';
     if (searchQuery) {
       const normalizedQuery = normalizeText(searchQuery);
       filtered = filtered.filter(product =>
@@ -181,11 +176,11 @@ const Home = () => {
     }
 
     if (sortBy === 'price-asc') filtered.sort((a, b) => a.price - b.price);
-    if (sortBy === 'price-desc') filtered.sort((a, b) => b.price - a.price);
+    if (sortBy === 'price-desc') filtered.sort((a, b) => b.price - b.price);
     if (sortBy === 'name-asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
+    if (sortBy === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(b.name));
 
-    setFilteredProducts(filtered.slice(0, 20));
+    setFilteredProducts(filtered);
     setTimeout(() => setIsLoading(false), 500);
   }, [allProducts, searchParams, sortBy, category, stockStatus, selectedMarket]);
 
@@ -476,63 +471,5 @@ const Home = () => {
     </div>
   );
 };
-
-// Helper functions from original code
-function generateExactlyTwentyUniqueProductsFromExisting(existingProducts, imageMap) {
-  const seen = new Set();
-  const uniqueProducts = [];
-  const groceryNames = [
-    'Apples', 'Bananas', 'Carrots', 'Potatoes', 'Tomatoes', 'Onions', 'Broccoli', 'Spinach',
-    'Milk', 'Eggs', 'Bread', 'Rice', 'Pasta', 'Chicken Breast', 'Beef Mince', 'Fish Fillet',
-    'Butter', 'Cheese', 'Yogurt', 'Orange Juice'
-  ];
-
-  existingProducts.forEach(product => {
-    if (!seen.has(product.name) && uniqueProducts.length < 20) {
-      uniqueProducts.push(product);
-      seen.add(product.name);
-    }
-  });
-
-  while (uniqueProducts.length < 20) {
-    const name = groceryNames.find(n => !seen.has(n));
-    if (name) {
-      seen.add(name);
-      const product = {
-        id: uniqueProducts.length + 1,
-        name,
-        description: `Fresh ${name} from local markets`,
-        price: Number((Math.random() * 20 + 1).toFixed(2)),
-        unit: getUnitForCategory(name),
-        quantity: Math.floor(Math.random() * 10) + 1,
-        available: Math.random() > 0.1,
-        image: imageMap[name],
-        category: determineCategory(name),
-      };
-      uniqueProducts.push(product);
-    }
-  }
-  return uniqueProducts;
-}
-
-function getUnitForCategory(name) {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('milk') || lowerName.includes('juice')) return 'liter';
-  if (lowerName.includes('fruit') || lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'kg';
-  if (lowerName.includes('bread')) return 'loaf';
-  if (lowerName.includes('eggs')) return 'dozen';
-  return 'each';
-}
-
-function determineCategory(name) {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('apples') || lowerName.includes('bananas') || lowerName.includes('tomatoes')) return 'fruits';
-  if (lowerName.includes('carrots') || lowerName.includes('potatoes') || lowerName.includes('onions') || lowerName.includes('broccoli') || lowerName.includes('spinach')) return 'vegetables';
-  if (lowerName.includes('milk') || lowerName.includes('eggs') || lowerName.includes('butter') || lowerName.includes('cheese') || lowerName.includes('yogurt')) return 'dairy';
-  if (lowerName.includes('chicken') || lowerName.includes('beef') || lowerName.includes('fish')) return 'meat';
-  if (lowerName.includes('bread')) return 'bread';
-  if (lowerName.includes('juice')) return 'beverages';
-  return 'all';
-}
 
 export default Home;

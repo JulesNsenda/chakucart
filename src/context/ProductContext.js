@@ -9,15 +9,11 @@ export const ProductProvider = ({ children }) => {
         if (savedProducts) {
             const parsedProducts = JSON.parse(savedProducts);
             const uniqueProducts = Array.from(new Map(parsedProducts.map(p => [p.id, p])).values());
-            if (uniqueProducts.length === 20) {
-                return uniqueProducts;
-            }
-            const newProducts = generateExactlyTwentyUniqueProducts();
-            localStorage.setItem('freshCartProducts', JSON.stringify(newProducts));
-            return newProducts;
+            return uniqueProducts;
         }
         return generateExactlyTwentyUniqueProducts();
     });
+    const [allProducts] = useState(products); // Maintain the full list of products
     const [currentPage, setCurrentPage] = useState(1);
     const [cart, setCart] = useState(() => {
         const savedCart = localStorage.getItem('freshCartCart');
@@ -36,14 +32,7 @@ export const ProductProvider = ({ children }) => {
     const itemsPerPage = 8;
 
     useEffect(() => {
-        const uniqueProducts = Array.from(new Map(products.map(p => [p.id, p])).values());
-        if (uniqueProducts.length !== 20) {
-            const newProducts = generateExactlyTwentyUniqueProducts();
-            setProducts(newProducts);
-            localStorage.setItem('freshCartProducts', JSON.stringify(newProducts));
-        } else {
-            localStorage.setItem('freshCartProducts', JSON.stringify(uniqueProducts));
-        }
+        localStorage.setItem('freshCartProducts', JSON.stringify(products));
     }, [products]);
 
     useEffect(() => {
@@ -65,17 +54,19 @@ export const ProductProvider = ({ children }) => {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-    // Select a market and set distance
+    // Select a market and filter existing products
     const selectMarket = (market, distance) => {
         setSelectedMarket(market);
         setMarketDistance(distance);
-        // Filter products to only show those from the selected market
         if (market) {
-            setProducts(prevProducts => {
-                const filtered = prevProducts.filter(p => p.market === market);
-                return filtered.length > 0 ? filtered : prevProducts;
-            });
+            // Filter products from the full list based on the selected market
+            const filtered = allProducts.filter(p => p.market === market);
+            setProducts(filtered.length > 0 ? filtered : allProducts);
+        } else {
+            // If no market is selected, show all products
+            setProducts(allProducts);
         }
+        setCurrentPage(1); // Reset to first page when market changes
     };
 
     // Cart methods
@@ -114,7 +105,6 @@ export const ProductProvider = ({ children }) => {
         localStorage.removeItem('freshCartCart');
     };
 
-    // New method to set cart items directly (for replacing orders)
     const setCartItems = (items) => {
         setCart(items.map(item => ({
             ...item,
@@ -161,7 +151,7 @@ export const ProductProvider = ({ children }) => {
     return (
         <ProductContext.Provider value={{
             products: currentProducts,
-            allProducts: products,
+            allProducts,
             cart,
             addToCart,
             removeFromCart,
