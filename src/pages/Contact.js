@@ -39,7 +39,7 @@ const Contact = () => {
                         </button>
                     </form>
                     <div className="mt-4 sm:mt-6 text-gray-700 text-sm sm:text-base text-center sm:text-left">
-                        <p>Email: support@freshcart.co.za</p>
+                        <p>Email: support@chakucart.co.za</p>
                         <p>Phone: +27 123 456 789</p>
                         <p>Address: 123 Fresh Street, Cape Town, South Africa</p>
                     </div>

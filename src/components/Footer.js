@@ -37,7 +37,7 @@ const Footer = () => {
                 {/* Contact */}
                 <div>
                     <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
-                    <p className="text-gray-400">Email: support@freshcart.co.za</p>
+                    <p className="text-gray-400">Email: support@chakucart.co.za</p>
                     <p className="text-gray-400">Phone: +27 123 456 789</p>
                     <p className="text-gray-400">Address: 123 Fresh Street, Cape Town, South Africa</p>
                 </div>
