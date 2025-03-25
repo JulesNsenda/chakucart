@@ -77,7 +77,7 @@ app.post('/api/initialize-transaction', async (req, res) => {
                         {
                             subaccount: FARMERS_SUBACCOUNT_CODE,
                             share: Math.round(subtotal * 0.875 * 100), // 87.5% of cart value
-                            transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
+                           // transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
                         },
                         {
                             subaccount: TRANSPORTER_SUBACCOUNT_CODE,
