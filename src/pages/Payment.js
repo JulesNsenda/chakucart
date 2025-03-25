@@ -21,6 +21,12 @@ const Payment = () => {
 
     const { subtotal, tax, shipping, total, itemCount } = location.state || {};
 
+    // Constants for fee calculations (same as server.js)
+    const PLATFORM_FEE_PERCENTAGE = 0.125; // 12.5% platform fee
+    const PAYSTACK_FEE_PERCENTAGE = 0.015; // 1.5%
+    const PAYSTACK_FLAT_FEE = 100; // R100
+    const PAYSTACK_FEE_CAP = 2000; // R2000 cap
+
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/sign-in');
@@ -31,6 +37,34 @@ const Payment = () => {
 
     const totalInKobo = Math.round(total * 100);
 
+    // Pre-check to ensure the transaction amount is sufficient
+    const checkMinimumAmount = () => {
+        // Calculate cart subtotal (excluding tax)
+        const cartSubtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
+        const cartSubtotalInKobo = Math.round(cartSubtotal * 100);
+
+        // Calculate fees
+        const platformFeeInKobo = Math.round(cartSubtotal * PLATFORM_FEE_PERCENTAGE * 100);
+        const paystackFee = Math.min(
+            Math.round(totalInKobo * PAYSTACK_FEE_PERCENTAGE) + (PAYSTACK_FLAT_FEE * 100),
+            PAYSTACK_FEE_CAP * 100
+        );
+        const shippingInKobo = Math.round(shipping * 100);
+
+        // Minimum amount required to cover platform fee, Paystack fee, and shipping
+        const minimumAmountInKobo = platformFeeInKobo + paystackFee + shippingInKobo;
+        const minimumAmount = minimumAmountInKobo / 100; // Convert to Rands
+
+        if (totalInKobo < minimumAmountInKobo) {
+            return {
+                isValid: false,
+                message: `Transaction amount (R${total.toFixed(2)}) is too low. Minimum amount required is R${minimumAmount.toFixed(2)} to cover fees and splits. Please add more items to your cart.`,
+            };
+        }
+
+        return { isValid: true };
+    };
+
     const saveOrderToLocalStorage = (order) => {
         const existingOrders = JSON.parse(localStorage.getItem('freshCartOrders') || '[]');
         const updatedOrders = [...existingOrders, order];
@@ -38,15 +72,22 @@ const Payment = () => {
     };
 
     const handlePaystackPayment = async () => {
+        // Perform pre-check
+        const checkResult = checkMinimumAmount();
+        if (!checkResult.isValid) {
+            showToast(checkResult.message, 'error');
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await axios.post(`${API_BASE_URL}/initialize-transaction`, {
                 email: user.email,
-                subtotal: subtotal + tax, // Subtotal includes tax
+                subtotal: subtotal + tax,
                 shipping,
                 cart,
             });
-    
+
             const { reference } = response.data.data;
             const handler = window.PaystackPop.setup({
                 key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
@@ -59,7 +100,8 @@ const Payment = () => {
             });
             handler.openIframe();
         } catch (error) {
-            showToast('Payment initialization failed', 'error');
+            const errorMessage = error.response?.data?.message || 'Payment initialization failed';
+            showToast(errorMessage, 'error');
             setIsLoading(false);
         }
     };
@@ -100,6 +142,13 @@ const Payment = () => {
     };
 
     const handlePayOnDelivery = async () => {
+        // Perform pre-check
+        const checkResult = checkMinimumAmount();
+        if (!checkResult.isValid) {
+            showToast(checkResult.message, 'error');
+            return;
+        }
+
         setIsLoading(true);
         try {
             if (!isCardLinked || !authorizationCode) {
@@ -135,7 +184,8 @@ const Payment = () => {
                 throw new Error(response.data.message || 'Payment failed');
             }
         } catch (error) {
-            showToast(error.message || 'Error processing pay on delivery.', 'error');
+            const errorMessage = error.response?.data?.message || 'Error processing pay on delivery.';
+            showToast(errorMessage, 'error');
         } finally {
             setIsLoading(false);
         }
