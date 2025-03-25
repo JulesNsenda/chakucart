@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const path = require('path')
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -61,6 +61,32 @@ app.post('/api/initialize-transaction', async (req, res) => {
     const shippingInKobo = Math.round(shipping * 100);
     const totalInKobo = cartValueInKobo + shippingInKobo;
 
+    // Calculate the actual cart subtotal (excluding tax) for platform fee calculation
+    const cartSubtotal = cart.reduce((sum, item) => sum + item.price * (item.cartQuantity || 1), 0);
+    const cartSubtotalInKobo = Math.round(cartSubtotal * 100);
+    const platformFeeInKobo = Math.round(cartSubtotal * 0.125 * 100); // 12.5% platform fee on cart subtotal (excluding tax)
+
+    // Estimate Paystack fee (1.5% + R100, capped at R2000)
+    const paystackFeePercentage = 0.015; // 1.5%
+    const paystackFlatFee = 100 * 100; // R100 in kobo
+    const paystackFee = Math.min(Math.round(totalInKobo * paystackFeePercentage) + paystackFlatFee, 2000 * 100);
+
+    // Amount available for splitting after platform fee and Paystack fee
+    const amountToSplitInKobo = totalInKobo - platformFeeInKobo - paystackFee;
+
+    // Split amounts
+    const shippingShareInKobo = shippingInKobo; // 100% of shipping to transporter
+    const farmerShareInKobo = amountToSplitInKobo - shippingShareInKobo; // Remaining amount to farmer
+
+    // Validate split amounts
+    if (farmerShareInKobo < 0) {
+        console.error('Not enough funds to cover shipping, platform fee, and Paystack fees');
+        return res.status(400).json({
+            status: 'error',
+            message: 'Transaction amount too low to cover fees and splits. Please add more items to your cart.',
+        });
+    }
+
     try {
         const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
@@ -76,12 +102,11 @@ app.post('/api/initialize-transaction', async (req, res) => {
                     subaccounts: [
                         {
                             subaccount: FARMERS_SUBACCOUNT_CODE,
-                            share: Math.round(subtotal * 0.875 * 100), // 87.5% of cart value
-                            transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
+                            share: farmerShareInKobo, // Adjusted farmer share
                         },
                         {
                             subaccount: TRANSPORTER_SUBACCOUNT_CODE,
-                            share: shippingInKobo, // 100% of shipping
+                            share: shippingShareInKobo, // 100% of shipping
                         },
                     ],
                 },
@@ -90,14 +115,15 @@ app.post('/api/initialize-transaction', async (req, res) => {
         );
 
         res.json({
-            status: 'success', data: {
+            status: 'success',
+            data: {
                 reference: response.data.data.reference, // Paystack reference
                 transactionId: response.data.data.id, // Paystack transaction ID (id)
                 ...response.data.data // Include full Paystack response data
             }
         });
     } catch (error) {
-        console.error(error.response?.data || error.message);
+        console.error('Error initializing transaction:', error.response?.data || error.message);
         res.status(500).json({ status: 'error', message: 'Payment failed' });
     }
 });
@@ -186,6 +212,28 @@ app.post('/api/confirm-delivery', async (req, res) => {
 
         const totalInKobo = Math.round(order.total * 100);
         const shippingInKobo = Math.round(order.shipping * 100);
+        const cartSubtotalInKobo = Math.round(order.subtotal * 100);
+        const platformFeeInKobo = Math.round(order.subtotal * 0.125 * 100); // 12.5% platform fee on cart subtotal
+
+        // Estimate Paystack fee
+        const paystackFeePercentage = 0.015; // 1.5%
+        const paystackFlatFee = 100 * 100; // R100 in kobo
+        const paystackFee = Math.min(Math.round(totalInKobo * paystackFeePercentage) + paystackFlatFee, 2000 * 100);
+
+        // Amount available for splitting after platform fee and Paystack fee
+        const amountToSplitInKobo = totalInKobo - platformFeeInKobo - paystackFee;
+
+        // Split amounts
+        const shippingShareInKobo = shippingInKobo; // 100% of shipping to transporter
+        const farmerShareInKobo = amountToSplitInKobo - shippingShareInKobo; // Remaining amount to farmer
+
+        // Validate split amounts
+        if (farmerShareInKobo < 0) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Transaction amount too low to cover fees and splits for Pay on Delivery.',
+            });
+        }
 
         // Charge the authorization with split
         const chargeResponse = await axios.post(
@@ -203,12 +251,11 @@ app.post('/api/confirm-delivery', async (req, res) => {
                     subaccounts: [
                         {
                             subaccount: FARMERS_SUBACCOUNT_CODE,
-                            share: Math.round(order.subtotal * 0.875 * 100), // 87.5% of subtotal
-                            transaction_charge: Math.round(order.subtotal * 0.125 * 100), // 12.5% fee
+                            share: farmerShareInKobo, // Adjusted farmer share
                         },
                         {
                             subaccount: TRANSPORTER_SUBACCOUNT_CODE,
-                            share: shippingInKobo, // 100% of shipping
+                            share: shippingShareInKobo, // 100% of shipping
                         },
                     ],
                 },
@@ -316,7 +363,7 @@ app.post('/api/request-refund', async (req, res) => {
         }
     );
 
-    console.log('Paystack Refund Response:', refundResponse.data); // Debug the refund response
+    console.log('Paystack Refund Response:', refundResponse.data);
     res.json({ status: 'success', message: 'Refund processed successfully.', data: refundResponse.data });
 });
 

@@ -42,11 +42,11 @@ const Payment = () => {
         try {
             const response = await axios.post(`${API_BASE_URL}/initialize-transaction`, {
                 email: user.email,
-                subtotal: subtotal + tax,
+                subtotal: subtotal + tax, // Subtotal includes tax
                 shipping,
                 cart,
             });
-
+    
             const { reference } = response.data.data;
             const handler = window.PaystackPop.setup({
                 key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY,
