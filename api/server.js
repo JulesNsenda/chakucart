@@ -62,6 +62,11 @@ app.post('/api/initialize-transaction', async (req, res) => {
     const totalInKobo = cartValueInKobo + shippingInKobo;
 
     try {
+        // Calculate shares with a more conservative approach
+        const farmersShare = Math.max(0, Math.round(cartValueInKobo * 0.875)); // 87.5% of cart value
+        const farmersFee = Math.round(cartValueInKobo * 0.125); // 12.5% fee
+        const transporterShare = shippingInKobo;
+
         const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
@@ -76,12 +81,12 @@ app.post('/api/initialize-transaction', async (req, res) => {
                     subaccounts: [
                         {
                             subaccount: FARMERS_SUBACCOUNT_CODE,
-                            share: Math.round(subtotal * 0.875 * 100), // 87.5% of cart value
-                            transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
+                            share: farmersShare, // Dynamically calculated to prevent negative amount
+                            transaction_charge: farmersFee,
                         },
                         {
                             subaccount: TRANSPORTER_SUBACCOUNT_CODE,
-                            share: shippingInKobo, // 100% of shipping
+                            share: transporterShare,
                         },
                     ],
                 },
@@ -90,15 +95,24 @@ app.post('/api/initialize-transaction', async (req, res) => {
         );
 
         res.json({
-            status: 'success', data: {
-                reference: response.data.data.reference, // Paystack reference
-                transactionId: response.data.data.id, // Paystack transaction ID (id)
-                ...response.data.data // Include full Paystack response data
+            status: 'success', 
+            data: {
+                reference: response.data.data.reference,
+                transactionId: response.data.data.id,
+                ...response.data.data
             }
         });
     } catch (error) {
-        console.error(error.response?.data || error.message);
-        res.status(500).json({ status: 'error', message: 'Payment failed' });
+        console.error('Transaction Initialization Error:', {
+            message: error.message,
+            responseData: error.response?.data,
+            responseStatus: error.response?.status
+        });
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Payment initialization failed',
+            details: error.response?.data || error.message
+        });
     }
 });
 
