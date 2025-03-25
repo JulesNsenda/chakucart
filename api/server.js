@@ -212,6 +212,28 @@ app.post('/api/confirm-delivery', async (req, res) => {
 
         const totalInKobo = Math.round(order.total * 100);
         const shippingInKobo = Math.round(order.shipping * 100);
+        const cartSubtotalInKobo = Math.round(order.subtotal * 100);
+        const platformFeeInKobo = Math.round(order.subtotal * 0.125 * 100); // 12.5% platform fee on cart subtotal
+
+        // Estimate Paystack fee
+        const paystackFeePercentage = 0.015; // 1.5%
+        const paystackFlatFee = 100 * 100; // R100 in kobo
+        const paystackFee = Math.min(Math.round(totalInKobo * paystackFeePercentage) + paystackFlatFee, 2000 * 100);
+
+        // Amount available for splitting after platform fee and Paystack fee
+        const amountToSplitInKobo = totalInKobo - platformFeeInKobo - paystackFee;
+
+        // Split amounts
+        const shippingShareInKobo = shippingInKobo; // 100% of shipping to transporter
+        const farmerShareInKobo = amountToSplitInKobo - shippingShareInKobo; // Remaining amount to farmer
+
+        // Validate split amounts
+        if (farmerShareInKobo < 0) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Transaction amount too low to cover fees and splits for Pay on Delivery.',
+            });
+        }
 
         // Charge the authorization with split
         const chargeResponse = await axios.post(
@@ -229,11 +251,11 @@ app.post('/api/confirm-delivery', async (req, res) => {
                     subaccounts: [
                         {
                             subaccount: FARMERS_SUBACCOUNT_CODE,
-                            share: Math.round(order.subtotal * 0.875 * 100), // 87.5% of subtotal
+                            share: farmerShareInKobo, // Adjusted farmer share
                         },
                         {
                             subaccount: TRANSPORTER_SUBACCOUNT_CODE,
-                            share: shippingInKobo, // 100% of shipping
+                            share: shippingShareInKobo, // 100% of shipping
                         },
                     ],
                 },
