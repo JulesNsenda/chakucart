@@ -62,6 +62,23 @@ app.post('/api/initialize-transaction', async (req, res) => {
     const totalInKobo = cartValueInKobo + shippingInKobo;
 
     try {
+        // Simplified split calculation with minimum thresholds
+        const splitConfig = {
+            type: "flat",
+            bearer_type: "account",
+            subaccounts: [
+                {
+                    subaccount: FARMERS_SUBACCOUNT_CODE,
+                    share: Math.max(Math.round(cartValueInKobo * 0.875), 1), // At least 1 kobo
+                },
+                {
+                    subaccount: TRANSPORTER_SUBACCOUNT_CODE,
+                    share: shippingInKobo,
+                },
+            ],
+        };
+
+        // Remove transaction_charge to avoid minimum amount issues
         const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
@@ -70,35 +87,29 @@ app.post('/api/initialize-transaction', async (req, res) => {
                 currency: 'ZAR',
                 reference: generateUniqueReference('FRESH'),
                 metadata: { cart, subtotal, shipping, type: 'full_payment' },
-                split: {
-                    type: "flat",
-                    bearer_type: "account",
-                    subaccounts: [
-                        {
-                            subaccount: FARMERS_SUBACCOUNT_CODE,
-                            share: Math.round(subtotal * 0.875 * 100), // 87.5% of cart value
-                            transaction_charge: Math.round(subtotal * 0.125 * 100), // 12.5% of cart value
-                        },
-                        {
-                            subaccount: TRANSPORTER_SUBACCOUNT_CODE,
-                            share: shippingInKobo, // 100% of shipping
-                        },
-                    ],
-                },
+                split: splitConfig,
             },
             { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
         );
 
         res.json({
-            status: 'success', data: {
-                reference: response.data.data.reference, // Paystack reference
-                transactionId: response.data.data.id, // Paystack transaction ID (id)
-                ...response.data.data // Include full Paystack response data
+            status: 'success', 
+            data: {
+                reference: response.data.data.reference,
+                transactionId: response.data.data.id,
+                ...response.data.data
             }
         });
     } catch (error) {
-        console.error(error.response?.data || error.message);
-        res.status(500).json({ status: 'error', message: 'Payment failed' });
+        console.error('Transaction Initialization Error:', {
+            message: error.response?.data || error.message,
+            config: error.config
+        });
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Payment initialization failed',
+            details: error.response?.data || error.message 
+        });
     }
 });
 
